@@ -1,0 +1,6 @@
+Simple Icons — Xiaohongshu, WeChat, GitHub
+https://github.com/simple-icons/simple-icons
+https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/xiaohongshu.svg
+https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/wechat.svg
+https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/github.svg
+CC0 1.0 Universal — see SimpleIcons-LICENSE.md
