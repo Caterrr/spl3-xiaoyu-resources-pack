@@ -5,3 +5,5 @@
 [浏览模型](https://caterrr.github.io/spl3-xiaoyu-resources-pack/)
 
 原始缺图、游戏专用效果及格式限制会在对应模型中标注。
+
+角色组合的 Blender 保留骨骼与独立部件，GLB 为已核验的静态姿态。
