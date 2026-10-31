@@ -1,3 +1,36 @@
+const modelDownloads=new Map();
+async function downloadModelManifest(item,format,link){
+ const key=item.id+':'+format;
+ if(modelDownloads.has(key))return modelDownloads.get(key);
+ const sizeLabel=link.querySelector('#download-'+format+'-size');
+ const originalLabel=size(item[format+'Bytes']);
+ const update=text=>{if(link.dataset.downloadKey===key)sizeLabel.textContent=text;};
+ const task=(async()=>{
+  link.setAttribute('aria-busy','true');update('准备下载');
+  const response=await fetch(resourceUrl(item[format]));if(!response.ok)throw Error('manifest');
+  const manifest=await response.json();
+  if(manifest.version!==1||manifest.sha256!==item[format+'Sha256']||manifest.bytes!==item[format+'Bytes']||!Array.isArray(manifest.chunks)||!manifest.chunks.length)throw Error('manifest_contract');
+  const digest=async bytes=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');
+  let total=0;for(const chunk of manifest.chunks){if(chunk.offset!==total||!Number.isSafeInteger(chunk.bytes)||chunk.bytes<=0)throw Error('chunk_layout');total+=chunk.bytes;}
+  if(total!==manifest.bytes)throw Error('file_size');
+  const payload=new Uint8Array(total);let cursor=0,received=0;
+  await Promise.all(Array.from({length:Math.min(3,manifest.chunks.length)},async()=>{
+   while(cursor<manifest.chunks.length){
+    const chunk=manifest.chunks[cursor++];const url=new URL(chunk.url,response.url);
+    if(url.origin!==new URL(response.url).origin)throw Error('chunk_origin');
+    const part=await fetch(url);if(!part.ok)throw Error('chunk');
+    const bytes=new Uint8Array(await part.arrayBuffer());if(bytes.length!==chunk.bytes||await digest(bytes)!==chunk.sha256)throw Error('chunk_integrity');
+    payload.set(bytes,chunk.offset);received+=bytes.length;update(Math.round(received/total*100)+'%');
+   }
+  }));
+  if(await digest(payload)!==manifest.sha256)throw Error('file_integrity');
+  const blob=new Blob([payload],{type:format==='glb'?'model/gltf-binary':'application/octet-stream'});
+  const url=URL.createObjectURL(blob),download=document.createElement('a');download.href=url;download.download=item.id+'.'+format;document.body.append(download);download.click();download.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);update(originalLabel);
+ })();
+ modelDownloads.set(key,task);
+ try{await task;}catch(error){update('下载失败，重试');throw error;}finally{modelDownloads.delete(key);if(link.dataset.downloadKey===key)link.removeAttribute('aria-busy');}
+}
+
 const resourceBase=document.querySelector('meta[name=resource-base]')?.content||'';
 const resourceUrl=path=>resourceBase?new URL(path,resourceBase).href:path;
 const links=[...document.querySelectorAll('.navigation a')];
@@ -13,7 +46,7 @@ function openDownload(item,trigger){
  document.querySelector('#download-preview').src=resourceUrl(item.poster);
  document.querySelector('#download-preview').alt=item.name;
  for(const format of ['blend','glb']){
-  const link=document.querySelector('#download-'+format);link.href=resourceUrl(item[format])+'?download='+encodeURIComponent(item.id+'.'+format);link.download=item.id+'.'+format;
+  const link=document.querySelector('#download-'+format);link.dataset.downloadKey=item.id+':'+format;link.removeAttribute('aria-busy');link.onclick=item[format+'Manifest']?event=>{event.preventDefault();downloadModelManifest(item,format,link).catch(()=>{});}:null;link.href=resourceUrl(item[format])+'?download='+encodeURIComponent(item.id+'.'+format);link.download=item.id+'.'+format;
   document.querySelector('#download-'+format+'-size').textContent=size(item[format+'Bytes']);
  }
  const note=document.querySelector('#download-note');
@@ -31,7 +64,7 @@ async function renderSection(){
  try{
   const section=active.dataset.section;
   if(!catalogs.has(section)){
-   const response=await fetch('./catalog/'+section+'.json?v=characters-182ac629');if(!response.ok)throw Error(response.status);
+   const response=await fetch('./catalog/'+section+'.json?v=assemblies-20261031b');if(!response.ok)throw Error(response.status);
    catalogs.set(section,await response.json());
   }
   if(version!==renderVersion)return;
