@@ -4,4 +4,4 @@
 
 [浏览模型](https://caterrr.github.io/spl3-xiaoyu-resources-pack/)
 
-原始缺失贴图和依赖游戏运行时的效果会在对应模型中标注。
+原始缺图、游戏专用效果及格式限制会在对应模型中标注。
