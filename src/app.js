@@ -17,7 +17,7 @@ function openDownload(item,trigger){
   document.querySelector('#download-'+format+'-size').textContent=size(item[format+'Bytes']);
  }
  const note=document.querySelector('#download-note');
- note.textContent=item.notes||'';note.hidden=!item.notes;
+ note.textContent=[item.layoutNote,item.notes].filter(Boolean).join(' ');note.hidden=!note.textContent;
  downloadDialog.showModal();
 }
 async function renderSection(){
