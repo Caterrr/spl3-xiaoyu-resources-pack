@@ -31,7 +31,7 @@ async function renderSection(){
  try{
   const section=active.dataset.section;
   if(!catalogs.has(section)){
-   const response=await fetch(resourceUrl('/catalog/'+section+'.json'));if(!response.ok)throw Error(response.status);
+   const response=await fetch('./catalog/'+section+'.json');if(!response.ok)throw Error(response.status);
    catalogs.set(section,await response.json());
   }
   if(version!==renderVersion)return;
