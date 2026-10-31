@@ -1,5 +1,7 @@
 # spl3 xiaoyu resources pack
 
-《斯普拉遁3》模型资源库，提供分类预览及 Blender、GLB 格式下载。
+《斯普拉遁3》模型资源库，按分类提供预览与 Blender、GLB 下载。
 
-包含武器、地图、场景、物件、角色与装饰。原始资源中缺失或依赖游戏运行时的贴图会单独标注。
+[浏览模型](https://caterrr.github.io/spl3-xiaoyu-resources-pack/)
+
+原始缺失贴图和依赖游戏运行时的效果会在对应模型中标注。
