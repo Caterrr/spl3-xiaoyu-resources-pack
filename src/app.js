@@ -72,8 +72,9 @@ function openModel(item,trigger){
   const link=document.querySelector('#download-'+format);link.dataset.downloadKey=item.id+':'+format;link.removeAttribute('aria-busy');
   link.href=resourceUrl(item[format])+'?download='+encodeURIComponent(item.id+'.'+format);link.download=item.id+'.'+format;
   link.onclick=event=>{
-   if(format==='glb'&&activeItem?.id===item.id&&modelBlob){event.preventDefault();fileRuntime.then(({saveModelFile})=>saveModelFile(modelBlob,item.id+'.glb',{url:modelObjectUrl}));}
-   else if(item[format+'Manifest']){event.preventDefault();downloadModel(item,format,link);}
+   event.preventDefault();
+   if(format==='glb'&&activeItem?.id===item.id&&modelBlob){const blob=modelBlob;fileRuntime.then(({saveModelFile})=>saveModelFile(blob,item.id+'.glb'));}
+   else downloadModel(item,format,link);
   };
   document.querySelector('#download-'+format+'-size').textContent=size(item[format+'Bytes']);
  }
