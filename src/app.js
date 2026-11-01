@@ -64,7 +64,7 @@ async function renderSection(){
  try{
   const section=active.dataset.section;
   if(!catalogs.has(section)){
-   const response=await fetch('./catalog/'+section+'.json?v=props-complete-20261101');if(!response.ok)throw Error(response.status);
+   const response=await fetch('./catalog/'+section+'.json?v=props-complete-20261101b');if(!response.ok)throw Error(response.status);
    catalogs.set(section,await response.json());
   }
   if(version!==renderVersion)return;
