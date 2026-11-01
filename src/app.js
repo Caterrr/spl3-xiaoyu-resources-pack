@@ -11,7 +11,9 @@ const modelDialog=document.querySelector('#model-dialog');
 const modelStage=document.querySelector('#model-stage');
 const modelStatus=document.querySelector('#model-status');
 const modelProgress=document.querySelector('#model-progress');
-let modelTrigger,activeItem,modelRuntime,modelVersion=0,modelAbort,modelBlob,modelObjectUrl;
+const modelVariant=document.querySelector('#model-variant');
+const modelVariantControl=document.querySelector('#model-variant-control');
+let modelTrigger,activeItem,activeGroup,modelRuntime,modelVersion=0,modelAbort,modelBlob,modelObjectUrl;
 function size(bytes){return bytes>=1073741824?(bytes/1073741824).toFixed(1)+' GB':bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':Math.ceil(bytes/1024)+' KB';}
 async function loadModel(item){
  const version=++modelVersion;
@@ -66,8 +68,21 @@ function showModelError(){
  modelStatus.textContent='预览暂时无法加载，仍可下载模型';
 }
 function openModel(item,trigger){
- modelTrigger=trigger;activeItem=item;
- document.querySelector('#model-title').textContent=item.name;
+ modelTrigger=trigger;activeGroup=item;
+ modelVariant.replaceChildren();
+ modelVariantControl.hidden=!item.mapVariants?.length;
+ for(const variant of item.mapVariants||[]){
+  const option=document.createElement('option');option.value=variant.item.id;option.textContent=variant.label;modelVariant.append(option);
+ }
+ if(item.mapVariants?.length)modelVariant.value=item.mapDefaultVariantId;
+ modelDialog.showModal();
+ document.body.classList.add('model-open');
+ selectModelVariant();
+}
+function selectModelVariant(){
+ const item=activeGroup.mapVariants?.find(variant=>variant.item.id===modelVariant.value)?.item||activeGroup;
+ activeItem=item;
+ document.querySelector('#model-title').textContent=activeGroup.name;
  for(const format of ['blend','glb']){
   const link=document.querySelector('#download-'+format);link.dataset.downloadKey=item.id+':'+format;link.removeAttribute('aria-busy');
   link.href=resourceUrl(item[format])+'?download='+encodeURIComponent(item.id+'.'+format);link.download=item.id+'.'+format;
@@ -80,10 +95,9 @@ function openModel(item,trigger){
  }
  const note=document.querySelector('#model-note');
  note.textContent=[item.layoutNote,item.notes].filter(Boolean).join(' ');note.hidden=!note.textContent;
- modelDialog.showModal();
- document.body.classList.add('model-open');
  loadModel(item);
 }
+modelVariant.addEventListener('change',selectModelVariant);
 async function downloadModel(item,format,link){
  const key=item.id+':'+format;if(modelDownloads.has(key))return;
  const label=document.querySelector('#download-'+format+'-size');
@@ -107,7 +121,7 @@ async function renderSection(){
  try{
   const section=active.dataset.section;
   if(!catalogs.has(section)){
-   const response=await fetch('./catalog/'+section+'.json?v=maps-dedup-20261101');if(!response.ok)throw Error(response.status);
+   const response=await fetch('./catalog/'+section+'.json?v=map-families-20261101');if(!response.ok)throw Error(response.status);
    catalogs.set(section,await response.json());
   }
   if(version!==renderVersion)return;
@@ -145,7 +159,7 @@ modelDialog.addEventListener('close',()=>{
  ++modelVersion;
  modelAbort?.abort();modelAbort=undefined;
  const viewer=modelStage.querySelector('model-viewer');if(viewer)viewer.removeAttribute('src');
- modelStage.replaceChildren();activeItem=undefined;
+ modelStage.replaceChildren();activeItem=activeGroup=undefined;
  modelBlob=undefined;if(modelObjectUrl)URL.revokeObjectURL(modelObjectUrl);modelObjectUrl=undefined;
  document.body.classList.remove('model-open');
  modelTrigger?.focus({preventScroll:true});

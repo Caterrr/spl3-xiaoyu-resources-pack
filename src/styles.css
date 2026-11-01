@@ -53,6 +53,10 @@ body.model-open{overflow:hidden}
 .model-stage model-viewer::part(default-progress-bar){display:none}
 .model-topbar{position:absolute;inset:0 0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:28px;padding:24px 28px;pointer-events:none;background:linear-gradient(#080808b3,transparent)}
 .model-topbar h2{margin:11px 0 0;font-size:15px;line-height:1.5;font-weight:400;overflow-wrap:anywhere;color:#bbb}
+.model-heading{min-width:0}
+#model-variant-control{display:flex;align-items:center;gap:10px;margin-top:14px;color:#999;font-size:13px;pointer-events:auto}
+#model-variant{max-width:240px;padding:8px 30px 8px 12px;border:1px solid #666;border-radius:0;background:#121212;color:#eee;font:inherit;cursor:pointer}
+#model-variant:hover,#model-variant:focus-visible{border-color:var(--accent)}
 #model-close{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;padding:10px;border:1px solid #555;background:#101010b3;color:#ddd;cursor:pointer;pointer-events:auto;transition:color 180ms,border-color 180ms}
 #model-close:hover{border-color:var(--accent);color:var(--accent)}
 #model-close svg,.format-option svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
