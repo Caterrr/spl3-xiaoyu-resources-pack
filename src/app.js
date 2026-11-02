@@ -121,7 +121,7 @@ async function renderSection(){
  try{
   const section=active.dataset.section;
   if(!catalogs.has(section)){
-   const response=await fetch('./catalog/'+section+'.json?v=existing-audit-20261102');if(!response.ok)throw Error(response.status);
+   const response=await fetch('./catalog/'+section+'.json?v=existing-audit-20261102b');if(!response.ok)throw Error(response.status);
    catalogs.set(section,await response.json());
   }
   if(version!==renderVersion)return;
