@@ -1,6 +1,6 @@
 const resourceBase=document.querySelector('meta[name=resource-base]')?.content||'';
 const resourceUrl=path=>resourceBase?new URL(path,resourceBase).href:path;
-const links=[...document.querySelectorAll('.navigation a')];
+const links=[...document.querySelectorAll('.navigation a[data-section]')];
 const content=document.querySelector('#content');
 const catalogs=new Map();
 let renderVersion=0;
