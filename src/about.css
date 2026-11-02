@@ -26,6 +26,12 @@
 .about-section[data-open=true] .about-answer p+p{transition-delay:135ms}
 .about-section a,.text-link{appearance:none;display:inline;padding:0 0 2px;margin:0;border:0;border-bottom:1px solid var(--accent);background:none;color:#fff;font:inherit;cursor:pointer;transition:color 200ms var(--ease)}
 .about-section a:hover,.text-link:hover{color:var(--accent)}
+.about-section--long{align-items:flex-start}
+.about-section--long .about-answer{position:static;transform:none;flex:1;display:grid;grid-template-rows:0fr;transition:grid-template-rows 550ms var(--ease),opacity 300ms ease,visibility 0s 550ms}
+.about-section--long .about-answer-inner{overflow:hidden}
+.about-section--long .about-answer p{font-size:16px}
+.about-section--long .about-answer p+p{margin-top:12px}
+.about-section--long[data-open=true] .about-answer{grid-template-rows:1fr;transition-delay:0s}
 @keyframes about-enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:800px){
  .about-page{padding-top:24px!important;padding-bottom:50px!important}
