@@ -12,21 +12,29 @@
 <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=de5960eaf394">
 <link rel="stylesheet" href="./styles.css?v=hide-cases-20261101">
 <link rel="stylesheet" href="./about.css?v=copyright-20261102">
+<link rel="stylesheet" href="./model-menu.css?v=release-20261102">
+<noscript><style>.model-menu-trigger{display:none}.model-subnavigation{position:static;opacity:1;visibility:visible;pointer-events:auto}</style></noscript>
+<link rel="stylesheet" href="./about-background.css?v=release-20261102">
 </head>
-<body>
+<body class="about-illustrated">
 <header class="site-header">
 <div class="container header-layout">
 <nav class="category-navigation" aria-label="模型分类">
 <ul class="navigation">
+<li class="model-menu" data-open="false">
+<button class="model-menu-trigger" type="button" aria-expanded="false" aria-controls="model-subnavigation"><span class="model-menu-icon" aria-hidden="true"></span><span>模型菜单</span></button>
+<ul class="model-subnavigation" id="model-subnavigation" aria-label="模型分类">
+<li style="--menu-order:0"><a href="./?section=old" data-section="old" title="旧主武器">旧武器</a></li>
+<li style="--menu-order:1"><a href="./?section=new" data-section="new" title="新主武器">新武器</a></li>
+<li style="--menu-order:2"><a href="./?section=sub-special" data-section="sub-special" title="副武器与大招">技能</a></li>
+<li style="--menu-order:3"><a href="./?section=maps" data-section="maps" title="按地图重组">地图</a></li>
+<li style="--menu-order:4"><a href="./?section=scenes" data-section="scenes" title="场景">场景</a></li>
+<li style="--menu-order:5"><a href="./?section=props" data-section="props" title="杂物">杂物</a></li>
+<li style="--menu-order:6"><a href="./?section=characters" data-section="characters" title="角色与敌人">角色</a></li>
+<li style="--menu-order:7"><a href="./?section=decor" data-section="decor" title="家具与收藏装饰">装饰</a></li>
+</ul>
+</li>
 <li><a href="./about.html" aria-current="page">关于</a></li>
-<li><a href="./?section=old" data-section="old" title="旧主武器">旧武器</a></li>
-<li><a href="./?section=new" data-section="new" title="新主武器">新武器</a></li>
-<li><a href="./?section=sub-special" data-section="sub-special" title="副武器与大招">技能</a></li>
-<li><a href="./?section=maps" data-section="maps" title="按地图重组">地图</a></li>
-<li><a href="./?section=scenes" data-section="scenes" title="场景">场景</a></li>
-<li><a href="./?section=props" data-section="props" title="杂物">杂物</a></li>
-<li><a href="./?section=characters" data-section="characters" title="角色与敌人">角色</a></li>
-<li><a href="./?section=decor" data-section="decor" title="家具与收藏装饰">装饰</a></li>
 </ul>
 </nav>
 <nav class="social-links" aria-label="个人链接">
@@ -73,6 +81,7 @@
 </div></div>
 </dialog>
 <script src="./about.js?v=about-live-20261101" defer></script>
+<script src="./model-menu.js?v=release-20261102" defer></script>
 <script src="./site-analytics.js?v=20261102" defer></script>
 </body>
 </html>

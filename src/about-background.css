@@ -1,0 +1,7 @@
+.about-illustrated{position:relative;isolation:isolate;background:#000}
+.about-illustrated::before,.about-illustrated::after{content:"";position:fixed;inset:0;pointer-events:none}
+.about-illustrated::before{z-index:-2;background:url("./assets/about-background.jpg") center center/cover no-repeat}
+.about-illustrated::after{z-index:-1;background:rgba(0,0,0,.85)}
+.about-illustrated .about-answer p,.about-illustrated .about-points{color:#d2d2d2}
+.about-illustrated .about-section::before{background:linear-gradient(90deg,rgba(0,0,0,.3),rgba(0,0,0,.15) 65%,transparent)}
+@media(max-width:800px){.about-illustrated::before{background-position:54% center}.about-illustrated::after{background:rgba(0,0,0,.87)}}
