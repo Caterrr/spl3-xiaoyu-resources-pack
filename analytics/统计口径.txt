@@ -1,0 +1,31 @@
+模型网站使用统计
+
+原有 Cloudflare Web Analytics：访问次数、页面浏览、设备类型、操作系统、浏览器、地区与网页性能。
+新增自定义统计：page_open、preview_start、preview_ready、preview_error、preview_cancel、download_click、download_file_ready、download_error。
+
+设备分为 mobile（手机）、desktop（电脑）、tablet（平板）、other（其他）。iPad 的桌面 UA 按触摸能力识别为平板/iOS。
+操作系统与浏览器单独分类；不尝试推测精确机型。Web Analytics 的 Visits 与自定义 page_open 不是同一口径。
+预览开始：每次实际启动模型加载，包括切换版本和重试。
+预览成功：model-viewer 的可见事件或加载后的可见状态；同次尝试只计一次。
+预览取消：模型显示前关闭或切换，不算加载错误。成功率建议同时展示取消次数。
+耗时：从发起预览到模型可见；只对成功预览计算分位数。
+下载点击：接受的下载操作，区分 blend/glb。忙碌时被忽略的重复点击不新增下载操作。
+文件准备成功：数据下载并通过现有大小/SHA-256 检查，调用浏览器保存动作；不能证明文件最终落盘。
+下载点击率：有下载点击的独立 preview_id / 成功预览的独立 preview_id；提前下载的行为单独保留。
+
+只收集白名单中的事件、资源代号、分类、格式、耗时、文件大小及设备大类。
+不使用 Cookie 或 localStorage，不采集姓名、邮箱、精确位置、完整 UA、搜索词或完整 URL。
+操作 ID 仅用于关联单次预览/下载，不是持久访客 ID。接收端不会输出 IP 日志；平台仍按其常规服务规则处理请求。
+本地预览不发送正式统计。正式站 URL 加 analytics_test=1 时，新增事件标为 test，正式报表须筛选 mode=production。
+自定义数据保存在账号私有的 Workers Logs 中，保留期以 Cloudflare 当前套餐和控制台显示为准；并非永久历史。
+
+建议保存的报表（均筛选 kind=spl3_usage、mode=production）：
+1. 设备访问类型：event=page_open，Count，Group By=device_type。
+2. 操作系统分布：event=page_open，Count，Group By=os。
+3. 浏览器分布：event=page_open，Count，Group By=browser。
+4. 预览结果：event 取 preview_start/preview_ready/preview_error/preview_cancel，Count，Group By=event。
+5. 成功模型加载耗时：event=preview_ready，P75/P90(duration_ms)，Group By=device_type。
+6. 下载格式：event=download_click，Count，Group By=format。
+7. 模型热度：event=preview_start，Count，Group By=model_id，按数量降序。
+
+历史行为无法补录。现有 Web Analytics 设备历史仍可查看。
