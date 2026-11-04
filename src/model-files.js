@@ -1,41 +1,68 @@
-const base=document.querySelector('meta[name=resource-base]')?.content||'';
-const resolve=path=>new URL(path,base||location.href).href;
-const digest=async bytes=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');
-
-// The same verified GLB is used for the viewer and the download.
-export async function loadModelFile(item,format,{signal,onProgress=()=>{}}={}){
- const expectedBytes=item[format+'Bytes'],expectedSha=item[format+'Sha256'];
- let payload;
- if(item[format+'Manifest']){
-  const response=await fetch(resolve(item[format]),{signal});if(!response.ok)throw Error('manifest');
-  const manifest=await response.json();
-  if(manifest.version!==1||manifest.bytes!==expectedBytes||manifest.sha256!==expectedSha||!Array.isArray(manifest.chunks)||!manifest.chunks.length)throw Error('manifest_contract');
-  let total=0;
-  for(const chunk of manifest.chunks){if(chunk.offset!==total||!Number.isSafeInteger(chunk.bytes)||chunk.bytes<=0)throw Error('chunk_layout');total+=chunk.bytes;}
-  if(total!==expectedBytes)throw Error('file_size');
-  payload=new Uint8Array(total);let cursor=0,received=0;
-  await Promise.all(Array.from({length:Math.min(3,manifest.chunks.length)},async()=>{
-   while(cursor<manifest.chunks.length){
-    const chunk=manifest.chunks[cursor++],url=new URL(chunk.url,response.url);
-    if(url.origin!==new URL(response.url).origin)throw Error('chunk_origin');
-    const part=await fetch(url,{signal});if(!part.ok)throw Error('chunk');
-    const bytes=new Uint8Array(await part.arrayBuffer());
-    if(bytes.length!==chunk.bytes||await digest(bytes)!==chunk.sha256)throw Error('chunk_integrity');
-    payload.set(bytes,chunk.offset);received+=bytes.length;onProgress(received/total);
-   }
-  }));
- }else{
-  const response=await fetch(resolve(item[format]),{signal});if(!response.ok)throw Error('model');
-  if(response.body&&Number.isSafeInteger(expectedBytes)&&expectedBytes>0){
-   payload=new Uint8Array(expectedBytes);let received=0;const reader=response.body.getReader();
-   while(true){const {done,value}=await reader.read();if(done)break;if(received+value.length>expectedBytes){await reader.cancel();throw Error('file_size');}payload.set(value,received);received+=value.length;onProgress(received/expectedBytes);}
-   if(received!==expectedBytes)throw Error('file_size');
-  }else payload=new Uint8Array(await response.arrayBuffer());
+const base=document.querySelector('meta[name=resource-base]')?.content||location.href;
+const pending=new Map(),cached=new Map(),workerJobs=new Map();
+const CACHE_LIMIT=24*1024*1024;let cacheBytes=0,sequence=0,worker;
+const aborted=()=>new DOMException('Aborted','AbortError');
+function remember(key,blob){
+ if(blob.size>CACHE_LIMIT/2)return;
+ cached.set(key,blob);cacheBytes+=blob.size;
+ while(cached.size>2||cacheBytes>CACHE_LIMIT){const first=cached.keys().next().value;cacheBytes-=cached.get(first).size;cached.delete(first);}
+}
+function background(item,format,signal,onProgress){
+ if(typeof Worker==='undefined')return import('./model-transport.mjs?v=bdee3beb9438').then(m=>m.loadModelFile(item,format,{base,signal,onProgress}));
+ try{
+  if(!worker){
+   worker=new Worker(new URL('./model-file-worker.js?v=6b1aa3f200cf',import.meta.url),{type:'module'});
+   worker.onmessage=({data})=>{
+    const job=workerJobs.get(data.id);if(!job)return;
+    if(data.type==='progress'){job.onProgress(data.value);return;}
+    workerJobs.delete(data.id);job.cleanup();
+    if(data.type==='ready')job.resolve(data.blob);
+    else{const error=new Error(data.message);error.name=data.name;job.reject(error);}
+   };
+   worker.onerror=()=>{
+    worker.terminate();worker=undefined;
+    for(const [id,job] of workerJobs){workerJobs.delete(id);job.cleanup();job.fallback();}
+   };
+  }
+ }catch{return import('./model-transport.mjs?v=bdee3beb9438').then(m=>m.loadModelFile(item,format,{base,signal,onProgress}));}
+ return new Promise((resolve,reject)=>{
+  const id=++sequence;
+  const cancel=()=>{worker?.postMessage({id,type:'cancel'});workerJobs.delete(id);signal.removeEventListener('abort',cancel);reject(aborted());};
+  signal.addEventListener('abort',cancel,{once:true});
+  if(signal.aborted){cancel();return;}
+  workerJobs.set(id,{resolve,reject,onProgress,cleanup:()=>signal.removeEventListener('abort',cancel),fallback:()=>import('./model-transport.mjs?v=bdee3beb9438').then(m=>m.loadModelFile(item,format,{base,signal,onProgress})).then(resolve,reject)});
+  worker.postMessage({id,type:'load',base,item,format});
+ });
+}
+// One verified transfer can serve a preview and an early download independently.
+export function loadModelFile(item,format,{signal,onProgress=()=>{}}={}){
+ if(signal?.aborted)return Promise.reject(aborted());
+ const key=[new URL(item[format],base).href,item[format+'Sha256'],item[format+'Bytes']].join(':');
+ if(cached.has(key)){const blob=cached.get(key);cached.delete(key);cached.set(key,blob);onProgress(1);return Promise.resolve(blob);}
+ let task=pending.get(key);
+ if(!task){
+  task={controller:new AbortController(),subscribers:new Set(),progress:0};pending.set(key,task);
+  task.promise=background(item,format,task.controller.signal,p=>{
+   task.progress=p;for(const sub of task.subscribers)sub.progress(p);
+  });
+  task.promise.then(blob=>{
+   if(pending.get(key)===task)pending.delete(key);
+   if(!task.controller.signal.aborted)remember(key,blob);
+   for(const sub of task.subscribers){sub.cleanup();sub.resolve(blob);}task.subscribers.clear();
+  },error=>{
+   if(pending.get(key)===task)pending.delete(key);
+   for(const sub of task.subscribers){sub.cleanup();sub.reject(error);}task.subscribers.clear();
+  });
  }
- if(signal?.aborted)throw new DOMException('Aborted','AbortError');
- if(payload.length!==expectedBytes||await digest(payload)!==expectedSha)throw Error('file_integrity');
- onProgress(1);
- return new Blob([payload],{type:format==='glb'?'model/gltf-binary':'application/octet-stream'});
+ return new Promise((resolve,reject)=>{
+  const sub={resolve,reject,progress:onProgress,cleanup:()=>signal?.removeEventListener('abort',cancel)};
+  const cancel=()=>{
+   sub.cleanup();task.subscribers.delete(sub);reject(aborted());
+   if(!task.subscribers.size){if(pending.get(key)===task)pending.delete(key);task.controller.abort();}
+  };
+  task.subscribers.add(sub);signal?.addEventListener('abort',cancel,{once:true});
+  if(signal?.aborted){cancel();return;}onProgress(task.progress);
+ });
 }
 
 export function saveModelFile(blob,filename,{url:existingUrl}={}){

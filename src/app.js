@@ -6,7 +6,7 @@ const content=document.querySelector('#content');
 const catalogs=new Map();
 let renderVersion=0;
 let pageObserver;
-const fileRuntime=import('./model-files.js?v=f58d17e83bcd');
+const fileRuntime=import('./model-files.js?v=a8179dcb47a1');
 const modelDownloads=new Map();
 const modelDialog=document.querySelector('#model-dialog');
 const modelStage=document.querySelector('#model-stage');
@@ -26,10 +26,23 @@ function setModelBackground(visible){
  modelBackground.title=visible?'隐藏背景':'显示背景';
 }
 modelBackground.addEventListener('click',()=>setModelBackground(modelBackground.getAttribute('aria-pressed')!=='true'));
-let modelTrigger,activeItem,activeGroup,modelRuntime,modelVersion=0,modelAbort,modelBlob,modelObjectUrl;
+let modelTrigger,activeItem,activeGroup,modelRuntime,modelVersion=0,modelAbort,modelBlob,modelObjectUrl,analyticsPreview;
+const metric=(method,...args)=>{try{return window.Spl3Metrics?.[method](...args);}catch{}};
+const runtime=()=>modelRuntime??=import('./vendor/model-viewer.min.js').catch(error=>{modelRuntime=undefined;throw error;});
+const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
+let warmupScheduled=false;
+function warmupViewer(){
+ if(warmupScheduled||navigator.connection?.saveData||/^(slow-)?2g$/.test(navigator.connection?.effectiveType||''))return;
+ warmupScheduled=true;
+ const warm=()=>{if(!document.hidden&&!modelDialog.open)runtime().catch(()=>{});};
+ if('requestIdleCallback'in window)requestIdleCallback(warm,{timeout:5000});else setTimeout(warm,1800);
+}
+
 function size(bytes){return bytes>=1073741824?(bytes/1073741824).toFixed(1)+' GB':bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':Math.ceil(bytes/1024)+' KB';}
 async function loadModel(item){
  const version=++modelVersion;
+ analyticsPreview?.cancel();
+ const attempt=analyticsPreview=metric('previewStart',item,game.key+':'+(links.find(link=>link.getAttribute('aria-current')==='page')?.dataset.section||game.defaultSection));
  modelAbort?.abort();modelAbort=new AbortController();
  const signal=modelAbort.signal;
  if(modelObjectUrl)URL.revokeObjectURL(modelObjectUrl);
@@ -41,10 +54,12 @@ async function loadModel(item){
  modelProgress.style.setProperty('--progress',0);
  modelProgress.setAttribute('aria-valuenow','0');
  try{
-  modelRuntime??=import('./vendor/model-viewer.min.js').catch(error=>{modelRuntime=undefined;throw error;});
-  const [,blob]=await Promise.all([modelRuntime,fileRuntime.then(({loadModelFile})=>loadModelFile(item,'glb',{signal,onProgress:fraction=>{
+  await nextPaint();
+  if(signal.aborted||version!==modelVersion||!modelDialog.open)return;
+  let lastProgress=-1;
+  const [,blob]=await Promise.all([runtime(),fileRuntime.then(({loadModelFile})=>loadModelFile(item,'glb',{signal,onProgress:fraction=>{
    if(version!==modelVersion)return;
-   const progress=Math.round(fraction*70);modelProgress.style.setProperty('--progress',progress/100);modelProgress.setAttribute('aria-valuenow',String(progress));modelStatus.textContent='加载模型 '+progress+'%';
+   const progress=Math.round(fraction*70);if(progress===lastProgress)return;lastProgress=progress;modelProgress.style.setProperty('--progress',progress/100);modelProgress.setAttribute('aria-valuenow',String(progress));modelStatus.textContent='加载模型 '+progress+'%';
   }}))]);
   if(version!==modelVersion||!modelDialog.open)return;
   modelBlob=blob;modelObjectUrl=URL.createObjectURL(blob);
@@ -70,12 +85,13 @@ async function loadModel(item){
   viewer.setAttribute('loading','eager');
   viewer.setAttribute('poster',resourceUrl(item.poster));
   viewer.addEventListener('progress',event=>{
-   if(version!==modelVersion)return;
+   if(version!==modelVersion||modelDialog.dataset.state==='ready')return;
    const progress=70+Math.round(event.detail.totalProgress*30);
    modelProgress.style.setProperty('--progress',progress/100);
    modelProgress.setAttribute('aria-valuenow',String(progress));
    modelStatus.textContent=progress<100?'加载模型 '+progress+'%':'准备预览…';
   });
+  viewer.addEventListener('model-visibility',event=>{if(version===modelVersion&&modelDialog.open&&event.detail.visible)attempt?.ready();});
   viewer.addEventListener('load',()=>{if(version===modelVersion){
    backgroundMaterials=(viewer.model?.materials||[]).filter(material=>(item.previewHideMaterialPrefixes||[]).some(prefix=>material.name.startsWith(prefix))).map(material=>({material,color:[...material.pbrMetallicRoughness.baseColorFactor],mode:material.getAlphaMode()}));
    modelBackground.hidden=!backgroundMaterials.length;
@@ -86,11 +102,12 @@ async function loadModel(item){
     modelBackground.setAttribute('aria-pressed',String(allVisible));modelBackground.title=allVisible?'隐藏背景':'显示背景';
    }
    modelDialog.dataset.state='ready';modelStatus.textContent='';
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(version===modelVersion&&modelDialog.open&&viewer.modelIsVisible)attempt?.ready();}));
   }});
-  viewer.addEventListener('error',()=>{if(version===modelVersion)showModelError();});
+  viewer.addEventListener('error',()=>{if(version===modelVersion){attempt?.error('viewer');showModelError();}});
   viewer.src=modelObjectUrl;
   modelStage.append(viewer);
- }catch(error){if(version===modelVersion&&error.name!=='AbortError')showModelError();}
+ }catch(error){if(version===modelVersion&&error.name!=='AbortError'){attempt?.error('load');showModelError();}}
 }
 function showModelError(){
  modelDialog.dataset.state='error';
@@ -118,7 +135,7 @@ function selectModelVariant(){
   link.href=downloadResource+(downloadResource.includes('?')?'&':'?')+'download='+encodeURIComponent(item.id+'.'+format);link.download=item.id+'.'+format;
   link.onclick=event=>{
    event.preventDefault();
-   if(format==='glb'&&activeItem?.id===item.id&&modelBlob){const blob=modelBlob;fileRuntime.then(({saveModelFile})=>saveModelFile(blob,item.id+'.glb'));}
+   if(format==='glb'&&activeItem?.id===item.id&&modelBlob){const blob=modelBlob;const download=metric('downloadClick',item,format,analyticsPreview);fileRuntime.then(({saveModelFile})=>{saveModelFile(blob,item.id+'.glb');download?.ready();}).catch(()=>download?.error('save'));}
    else downloadModel(item,format,link);
   };
   document.querySelector('#download-'+format+'-size').textContent=size(item[format+'Bytes']);
@@ -130,12 +147,13 @@ function selectModelVariant(){
 modelVariant.addEventListener('change',selectModelVariant);
 async function downloadModel(item,format,link){
  const key=item.id+':'+format;if(modelDownloads.has(key))return;
+ const download=metric('downloadClick',item,format,analyticsPreview);
  const label=document.querySelector('#download-'+format+'-size');
  const update=text=>{if(link.dataset.downloadKey===key)label.textContent=text;};
  const task=(async()=>{
   link.setAttribute('aria-busy','true');update('准备下载');
-  try{const {loadModelFile,saveModelFile}=await fileRuntime;const blob=await loadModelFile(item,format,{onProgress:p=>update(Math.round(p*100)+'%')});saveModelFile(blob,item.id+'.'+format);update(size(item[format+'Bytes']));}
-  catch(error){update('下载失败，重试');}
+  try{const {loadModelFile,saveModelFile}=await fileRuntime;const blob=await loadModelFile(item,format,{onProgress:p=>update(Math.round(p*100)+'%')});saveModelFile(blob,item.id+'.'+format);download?.ready();update(size(item[format+'Bytes']));}
+  catch(error){download?.error('fetch');update('下载失败，重试');}
   finally{modelDownloads.delete(key);if(link.dataset.downloadKey===key)link.removeAttribute('aria-busy');}
  })();modelDownloads.set(key,task);
 }
@@ -151,21 +169,24 @@ async function renderSection(){
  try{
   const section=active.dataset.section;
   if(!catalogs.has(section)){
-   const response=await fetch('./catalog/'+game.key+'/'+section+'.json?v=production-20261103',{cache:'no-store'});if(!response.ok)throw Error(response.status);
-   catalogs.set(section,await response.json());
+   const early=window.libraryCatalogRequest;
+   const data=early?.game===game.key&&early.section===section?await early.promise:await fetch(window.libraryCatalogUrls?.[game.key+':'+section]||'./catalog/'+game.key+'/'+section+'.json?v=production-20261103').then(response=>{if(!response.ok)throw Error(response.status);return response.json();});
+   catalogs.set(section,data);
   }
   if(version!==renderVersion)return;
   const data=catalogs.get(section), items=data.items;status.remove();
   const gallery=document.createElement('div');gallery.className='model-list';gallery.setAttribute('role','list');content.append(gallery);
   const sentinel=document.createElement('div');sentinel.className='load-sentinel';sentinel.setAttribute('aria-hidden','true');
   let cursor=0;
+  const columns=innerWidth>=1440?7:innerWidth>=1280?6:innerWidth>=1080?5:innerWidth>=760?4:innerWidth>=600?3:2;
+  const eagerCount=columns*Math.max(1,Math.ceil((innerHeight-120)/((innerWidth-60)/columns+28)));
   function addPage(){
    if(version!==renderVersion||cursor>=items.length)return;
    const fragment=document.createDocumentFragment();
    for(const item of items.slice(cursor,cursor+60)){
     const entry=document.createElement('div');entry.className='model-entry';entry.setAttribute('role','listitem');
     const button=document.createElement('button');button.type='button';button.className='model-card';button.setAttribute('aria-label','预览 '+item.name);button.title=item.name;button.setAttribute('aria-haspopup','dialog');
-    const image=document.createElement('img');image.src=resourceUrl(item.poster);image.alt=item.name;image.loading='lazy';image.decoding='async';image.width=360;image.height=360;
+    const image=document.createElement('img');image.alt=item.name;image.loading=cursor+fragment.childElementCount<eagerCount?'eager':'lazy';image.decoding='async';image.width=360;image.height=360;image.fetchPriority=cursor+fragment.childElementCount<2?'high':'auto';image.src=resourceUrl(item.poster);
     button.append(image);button.addEventListener('click',()=>openModel(item,button));
     if(item.notes){const flag=document.createElement('span');flag.className='model-note';flag.textContent='i';flag.setAttribute('aria-label',item.notes);flag.title=item.notes;button.append(flag);}
     entry.append(button);fragment.append(entry);
@@ -175,6 +196,7 @@ async function renderSection(){
   }
   if(!items.length){status.textContent=game.emptyMessage||'暂无模型';content.append(status);}else{
    addPage();
+   Promise.all([...gallery.querySelectorAll('img[loading="eager"]')].map(image=>image.decode().catch(()=>{}))).then(()=>requestAnimationFrame(warmupViewer));
    if(cursor<items.length){
     content.append(sentinel);
     if('IntersectionObserver'in window){pageObserver=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))addPage();},{rootMargin:'800px 0px'});pageObserver.observe(sentinel);}
@@ -186,6 +208,7 @@ async function renderSection(){
 document.querySelector('#model-close').addEventListener('click',()=>modelDialog.close());
 document.querySelector('#model-retry').addEventListener('click',()=>{if(activeItem)loadModel(activeItem);});
 modelDialog.addEventListener('close',()=>{
+ analyticsPreview?.cancel();analyticsPreview=undefined;
  ++modelVersion;
  modelAbort?.abort();modelAbort=undefined;
  const viewer=modelStage.querySelector('model-viewer');if(viewer)viewer.removeAttribute('src');

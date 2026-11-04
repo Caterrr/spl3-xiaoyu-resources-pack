@@ -62,5 +62,8 @@
   };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
   window.addEventListener('pagehide', flush);
-  emit('page_open');
+  const params=new URL(location.href).searchParams;
+  const game=['spl3','raiders','phantom'].includes(params.get('game'))?params.get('game'):'spl3';
+  const section=params.get('section');
+  emit('page_open',{section:game+':'+(['old','new','sub-special','weapons','skills','maps','scenes','props','characters','decor'].includes(section)?section:'home')});
 })();
