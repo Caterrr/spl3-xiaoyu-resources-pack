@@ -1,5 +1,5 @@
 const base=document.querySelector('meta[name=resource-base]')?.content||'';
-const resolve=path=>base?new URL(path,base).href:new URL(path,location.href).href;
+const resolve=path=>new URL(path,base||location.href).href;
 const digest=async bytes=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');
 
 // The same verified GLB is used for the viewer and the download.

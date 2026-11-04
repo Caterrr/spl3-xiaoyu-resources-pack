@@ -1,0 +1,21 @@
+Chrontor Regular
+Copyright 2026 Tianhao Zhang (TianType)
+SIL Open Font License, Version 1.1
+See Chrontor-OFL.txt
+
+Satoshi (Regular and Medium)
+Copyright 2017-2021 Indian Type Foundry. All rights reserved.
+ITF Free Font License: https://www.fontshare.com/terms
+Family: https://www.fontshare.com/fonts/satoshi
+
+Clash Display (Regular and Medium)
+Copyright 2021 Indian Type Foundry. All rights reserved.
+ITF Free Font License: https://www.fontshare.com/terms
+Family: https://www.fontshare.com/fonts/clash-display
+
+All font files are retained without modification.
+Font selection reference: https://www.zimon.cc/en/
+
+NHaasGroteskDSPro-65Md (number font, local review)
+Reference: https://2018.sfuitaliadesign.com/
+Font file retained without modification from the rendered reference page.

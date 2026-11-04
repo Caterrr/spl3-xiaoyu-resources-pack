@@ -1,0 +1,1 @@
+#model-background{margin-top:14px;padding:8px 14px;border:1px solid #666;background:#121212;color:#ddd;font:inherit;font-size:13px;pointer-events:auto;cursor:pointer;transition:border-color .25s,color .25s}#model-background[hidden]{display:none}#model-background:hover,#model-background[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}

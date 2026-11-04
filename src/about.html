@@ -3,35 +3,65 @@
 <head>
 <meta charset="utf-8">
 <meta name="resource-base" content="https://ink-armory-aisaka-1010.cater-dcy.chatgpt.site/">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>关于 · spl3 xiaoyu resources pack</title>
 <meta name="description" content="斯普拉遁3模型资源库，提供分类预览与 Blender、GLB 下载。">
 <link rel="icon" type="image/x-icon" href="./assets/site-icon.ico?v=de5960eaf394">
 <link rel="icon" type="image/png" sizes="512x512" href="./assets/site-icon.png?v=de5960eaf394">
 <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=de5960eaf394">
-<link rel="stylesheet" href="./styles.css?v=hide-cases-20261101">
-<link rel="stylesheet" href="./about.css?v=copyright-20261102">
-<link rel="stylesheet" href="./model-menu.css?v=release-20261102">
-<noscript><style>.model-menu-trigger{display:none}.model-subnavigation{position:static;opacity:1;visibility:visible;pointer-events:auto}</style></noscript>
-<link rel="stylesheet" href="./about-background.css?v=release-20261102">
+<link rel="stylesheet" href="./styles.css?v=0bea74d42a71">
+<link rel="stylesheet" href="./about.css?v=73fdab16b26d">
+
+
+<link rel="stylesheet" href="./about-background.css?v=72eaf3a31892">
+<link rel="stylesheet" href="./model-menu.css?v=cc1f98fbcd6b">
+<link rel="preload" href="./vendor/fonts/Satoshi-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./vendor/fonts/Chrontor-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./typography.css?v=a554d1e98007">
+<link rel="stylesheet" href="./responsive.css?v=2ad52476b1f0">
 </head>
 <body class="about-illustrated">
 <header class="site-header">
 <div class="container header-layout">
-<nav class="category-navigation" aria-label="模型分类">
-<ul class="navigation">
-<li class="model-menu" data-open="false">
-<button class="model-menu-trigger" type="button" aria-expanded="false" aria-controls="model-subnavigation"><span class="model-menu-icon" aria-hidden="true"></span><span>模型菜单</span></button>
-<ul class="model-subnavigation" id="model-subnavigation" aria-label="模型分类">
-<li style="--menu-order:0"><a href="./?section=old" data-section="old" title="旧主武器">旧武器</a></li>
-<li style="--menu-order:1"><a href="./?section=new" data-section="new" title="新主武器">新武器</a></li>
-<li style="--menu-order:2"><a href="./?section=sub-special" data-section="sub-special" title="副武器与大招">技能</a></li>
-<li style="--menu-order:3"><a href="./?section=maps" data-section="maps" title="按地图重组">地图</a></li>
-<li style="--menu-order:4"><a href="./?section=scenes" data-section="scenes" title="场景">场景</a></li>
-<li style="--menu-order:5"><a href="./?section=props" data-section="props" title="杂物">杂物</a></li>
-<li style="--menu-order:6"><a href="./?section=characters" data-section="characters" title="角色与敌人">角色</a></li>
-<li style="--menu-order:7"><a href="./?section=decor" data-section="decor" title="家具与收藏装饰">装饰</a></li>
+<nav class="category-navigation" aria-label="主要导航">
+<ul class="navigation game-navigation">
+<li><a href="./index.html">首页</a></li>
+<li class="game-menu" data-game="spl3" data-open="false">
+<button class="game-menu-trigger" type="button" aria-expanded="false" aria-controls="game-subnavigation-spl3"><span>喷3</span><span class="game-menu-caret" aria-hidden="true"></span></button>
+<ul class="game-subnavigation" id="game-subnavigation-spl3" aria-label="喷3模型分类">
+<li style="--menu-order:0"><a href="./library.html?game=spl3&amp;section=old" data-game="spl3" data-section="old">旧武器</a></li>
+<li style="--menu-order:1"><a href="./library.html?game=spl3&amp;section=new" data-game="spl3" data-section="new">新武器</a></li>
+<li style="--menu-order:2"><a href="./library.html?game=spl3&amp;section=sub-special" data-game="spl3" data-section="sub-special">技能</a></li>
+<li style="--menu-order:3"><a href="./library.html?game=spl3&amp;section=maps" data-game="spl3" data-section="maps">地图</a></li>
+<li style="--menu-order:4"><a href="./library.html?game=spl3&amp;section=scenes" data-game="spl3" data-section="scenes">场景</a></li>
+<li style="--menu-order:5"><a href="./library.html?game=spl3&amp;section=props" data-game="spl3" data-section="props">杂物</a></li>
+<li style="--menu-order:6"><a href="./library.html?game=spl3&amp;section=characters" data-game="spl3" data-section="characters">角色</a></li>
+<li style="--menu-order:7"><a href="./library.html?game=spl3&amp;section=decor" data-game="spl3" data-section="decor">装饰</a></li>
+</ul>
+</li>
+<li class="game-menu" data-game="raiders" data-open="false">
+<button class="game-menu-trigger" type="button" aria-expanded="false" aria-controls="game-subnavigation-raiders"><span>涂击队</span><span class="game-menu-caret" aria-hidden="true"></span></button>
+<ul class="game-subnavigation" id="game-subnavigation-raiders" aria-label="涂击队模型分类">
+<li style="--menu-order:0"><a href="./library.html?game=raiders&amp;section=weapons" data-game="raiders" data-section="weapons">武器</a></li>
+<li style="--menu-order:1"><a href="./library.html?game=raiders&amp;section=skills" data-game="raiders" data-section="skills">技能</a></li>
+<li style="--menu-order:2"><a href="./library.html?game=raiders&amp;section=maps" data-game="raiders" data-section="maps">地图</a></li>
+<li style="--menu-order:3"><a href="./library.html?game=raiders&amp;section=scenes" data-game="raiders" data-section="scenes">场景</a></li>
+<li style="--menu-order:4"><a href="./library.html?game=raiders&amp;section=props" data-game="raiders" data-section="props">杂物</a></li>
+<li style="--menu-order:5"><a href="./library.html?game=raiders&amp;section=characters" data-game="raiders" data-section="characters">角色</a></li>
+<li style="--menu-order:6"><a href="./library.html?game=raiders&amp;section=decor" data-game="raiders" data-section="decor">装饰</a></li>
+</ul>
+</li>
+<li class="game-menu" data-game="phantom" data-open="false">
+<button class="game-menu-trigger" type="button" aria-expanded="false" aria-controls="game-subnavigation-phantom"><span>幻界</span><span class="game-menu-caret" aria-hidden="true"></span></button>
+<ul class="game-subnavigation" id="game-subnavigation-phantom" aria-label="幻界模型分类">
+<li style="--menu-order:0"><a href="./library.html?game=phantom&amp;section=weapons" data-game="phantom" data-section="weapons">武器</a></li>
+<li style="--menu-order:1"><a href="./library.html?game=phantom&amp;section=skills" data-game="phantom" data-section="skills">技能</a></li>
+<li style="--menu-order:2"><a href="./library.html?game=phantom&amp;section=maps" data-game="phantom" data-section="maps">地图</a></li>
+<li style="--menu-order:3"><a href="./library.html?game=phantom&amp;section=scenes" data-game="phantom" data-section="scenes">场景</a></li>
+<li style="--menu-order:4"><a href="./library.html?game=phantom&amp;section=props" data-game="phantom" data-section="props">杂物</a></li>
+<li style="--menu-order:5"><a href="./library.html?game=phantom&amp;section=characters" data-game="phantom" data-section="characters">角色</a></li>
+<li style="--menu-order:6"><a href="./library.html?game=phantom&amp;section=decor" data-game="phantom" data-section="decor">装饰</a></li>
 </ul>
 </li>
 <li><a href="./about.html" aria-current="page">关于</a></li>
@@ -80,9 +110,10 @@
 <a id="download-glb" class="format-option" download><span>GLB<small id="download-glb-size"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></a>
 </div></div>
 </dialog>
-<script src="./about.js?v=about-live-20261101" defer></script>
-<script src="./model-menu.js?v=release-20261102" defer></script>
-<script src="./site-analytics.js?v=20261102" defer></script>
-<script src="./site-events.js?v=20261103" defer></script>
+<script src="./about.js?v=aba2021b6f19" defer></script>
+
+
+<script src="./model-menu.js?v=c5cba6bcbd02" defer></script>
+<script src="./site-analytics.js?v=19d2794a7ecf" defer></script>
 </body>
 </html>

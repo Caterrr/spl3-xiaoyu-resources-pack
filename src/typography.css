@@ -1,0 +1,14 @@
+@font-face{font-family:"Satoshi";src:url("./vendor/fonts/Satoshi-400.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:"Satoshi";src:url("./vendor/fonts/Satoshi-500.woff2") format("woff2");font-style:normal;font-weight:500;font-display:swap}
+@font-face{font-family:"Clash Display";src:url("./vendor/fonts/ClashDisplay-400.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:"Clash Display";src:url("./vendor/fonts/ClashDisplay-500.woff2") format("woff2");font-style:normal;font-weight:500;font-display:swap}
+@font-face{font-family:"Chrontor";src:url("./vendor/fonts/Chrontor-400.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:"NHaasGroteskDSPro-65Md";src:url("./vendor/fonts/NHaasGroteskDSPro-65Md.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:"UI Digits";src:url("./vendor/fonts/Satoshi-400.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap;unicode-range:U+0030-0039}
+@font-face{font-family:"UI Digits";src:url("./vendor/fonts/Satoshi-500.woff2") format("woff2");font-style:normal;font-weight:500;font-display:swap;unicode-range:U+0030-0039}
+:root{--font-body:"UI Digits","Satoshi","PingFang SC","Microsoft YaHei",sans-serif;--font-display:"UI Digits","Clash Display","PingFang SC","Microsoft YaHei",sans-serif;--font-numbers:"Satoshi","Helvetica Neue",Arial,sans-serif;--font-navigation:"UI Digits","Chrontor","PingFang SC","Microsoft YaHei",sans-serif;font-family:var(--font-body)}
+h1,h2,h3,.choice-title{font-family:var(--font-display)}
+.site-header .game-navigation{font-family:var(--font-navigation)}
+.portal-page .choice-number{font-family:"NHaasGroteskDSPro-65Md","Helvetica Neue",Arial,sans-serif;font-weight:400;letter-spacing:-.009em;container-type:inline-size}
+.choice-number>span{font-size:min(1em,90cqw)}
+.about-number{font-family:var(--font-numbers);font-weight:400}

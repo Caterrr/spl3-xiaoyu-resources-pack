@@ -1,11 +1,12 @@
 const resourceBase=document.querySelector('meta[name=resource-base]')?.content||'';
-const resourceUrl=path=>resourceBase?new URL(path,resourceBase).href:path;
-const links=[...document.querySelectorAll('.navigation a[data-section]')];
+const resourceUrl=path=>new URL(path,resourceBase||location.href).href;
+const game=window.libraryGame;
+const links=[...document.querySelectorAll('.navigation a[data-section]')].filter(link=>link.dataset.game===game.key);
 const content=document.querySelector('#content');
 const catalogs=new Map();
 let renderVersion=0;
 let pageObserver;
-const fileRuntime=import('./model-files.js?v=fullscreen-scroll-20261101');
+const fileRuntime=import('./model-files.js?v=f58d17e83bcd');
 const modelDownloads=new Map();
 const modelDialog=document.querySelector('#model-dialog');
 const modelStage=document.querySelector('#model-stage');
@@ -13,18 +14,28 @@ const modelStatus=document.querySelector('#model-status');
 const modelProgress=document.querySelector('#model-progress');
 const modelVariant=document.querySelector('#model-variant');
 const modelVariantControl=document.querySelector('#model-variant-control');
+const modelBackground=document.querySelector('#model-background');
+let backgroundMaterials=[];
+function setBackgroundMaterial({material,color,mode},visible){
+ material.setAlphaMode(visible?mode:'BLEND');
+ material.pbrMetallicRoughness.setBaseColorFactor(visible?color:[...color.slice(0,3),0]);
+}
+function setModelBackground(visible){
+ for(const row of backgroundMaterials)setBackgroundMaterial(row,visible);
+ modelBackground.setAttribute('aria-pressed',String(visible));
+ modelBackground.title=visible?'隐藏背景':'显示背景';
+}
+modelBackground.addEventListener('click',()=>setModelBackground(modelBackground.getAttribute('aria-pressed')!=='true'));
 let modelTrigger,activeItem,activeGroup,modelRuntime,modelVersion=0,modelAbort,modelBlob,modelObjectUrl;
-let analyticsPreview;
 function size(bytes){return bytes>=1073741824?(bytes/1073741824).toFixed(1)+' GB':bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':Math.ceil(bytes/1024)+' KB';}
 async function loadModel(item){
  const version=++modelVersion;
- analyticsPreview?.cancel();
- const attempt=analyticsPreview=window.Spl3Metrics?.previewStart(item,links.find(link=>link.getAttribute('aria-current')==='page')?.dataset.section);
  modelAbort?.abort();modelAbort=new AbortController();
  const signal=modelAbort.signal;
  if(modelObjectUrl)URL.revokeObjectURL(modelObjectUrl);
  modelBlob=modelObjectUrl=undefined;
  modelStage.replaceChildren();
+ backgroundMaterials=[];modelBackground.hidden=true;
  modelDialog.dataset.state='loading';
  modelStatus.textContent='加载模型…';
  modelProgress.style.setProperty('--progress',0);
@@ -43,9 +54,14 @@ async function loadModel(item){
   viewer.setAttribute('camera-controls','');
   viewer.setAttribute('touch-action','none');
   viewer.setAttribute('interaction-prompt','none');
-  viewer.setAttribute('camera-orbit','35deg 70deg 105%');
-  viewer.setAttribute('min-camera-orbit','auto 0deg 40%');
-  viewer.setAttribute('max-camera-orbit','auto 180deg 600%');
+  viewer.setAttribute('camera-orbit',item.previewCamera?.orbit||'35deg 70deg 105%');
+  viewer.setAttribute('min-camera-orbit',item.previewCamera?.minOrbit||'auto 0deg 40%');
+  viewer.setAttribute('max-camera-orbit',item.previewCamera?.maxOrbit||'auto 180deg 600%');
+  if(item.previewCamera?.target)viewer.setAttribute('camera-target',item.previewCamera.target);
+  if(item.previewCamera){
+   viewer.setAttribute('max-field-of-view','45deg');
+   viewer.setAttribute('field-of-view','45deg');
+  }
   viewer.setAttribute('environment-image','./assets/studio-neutral.hdr');
   viewer.setAttribute('tone-mapping','neutral');
   viewer.setAttribute('exposure','0.85');
@@ -60,12 +76,21 @@ async function loadModel(item){
    modelProgress.setAttribute('aria-valuenow',String(progress));
    modelStatus.textContent=progress<100?'加载模型 '+progress+'%':'准备预览…';
   });
-  viewer.addEventListener('model-visibility',event=>{if(version===modelVersion&&modelDialog.open&&event.detail.visible)attempt?.ready();});
-  viewer.addEventListener('load',()=>{if(version===modelVersion){modelDialog.dataset.state='ready';modelStatus.textContent='';requestAnimationFrame(()=>requestAnimationFrame(()=>{if(version===modelVersion&&modelDialog.open&&viewer.modelIsVisible)attempt?.ready();}));}});
-  viewer.addEventListener('error',()=>{if(version===modelVersion){attempt?.error('viewer');showModelError();}});
+  viewer.addEventListener('load',()=>{if(version===modelVersion){
+   backgroundMaterials=(viewer.model?.materials||[]).filter(material=>(item.previewHideMaterialPrefixes||[]).some(prefix=>material.name.startsWith(prefix))).map(material=>({material,color:[...material.pbrMetallicRoughness.baseColorFactor],mode:material.getAlphaMode()}));
+   modelBackground.hidden=!backgroundMaterials.length;
+   if(backgroundMaterials.length){
+    const prefixes=item.previewHiddenMaterialPrefixes||(item.previewBackgroundVisible?[]:item.previewHideMaterialPrefixes||[]);
+    let allVisible=true;
+    for(const row of backgroundMaterials){const visible=!prefixes.some(prefix=>row.material.name.startsWith(prefix));setBackgroundMaterial(row,visible);allVisible&&=visible;}
+    modelBackground.setAttribute('aria-pressed',String(allVisible));modelBackground.title=allVisible?'隐藏背景':'显示背景';
+   }
+   modelDialog.dataset.state='ready';modelStatus.textContent='';
+  }});
+  viewer.addEventListener('error',()=>{if(version===modelVersion)showModelError();});
   viewer.src=modelObjectUrl;
   modelStage.append(viewer);
- }catch(error){if(version===modelVersion&&error.name!=='AbortError'){attempt?.error('load');showModelError();}}
+ }catch(error){if(version===modelVersion&&error.name!=='AbortError')showModelError();}
 }
 function showModelError(){
  modelDialog.dataset.state='error';
@@ -89,10 +114,11 @@ function selectModelVariant(){
  document.querySelector('#model-title').textContent=activeGroup.name;
  for(const format of ['blend','glb']){
   const link=document.querySelector('#download-'+format);link.dataset.downloadKey=item.id+':'+format;link.removeAttribute('aria-busy');
-  link.href=resourceUrl(item[format])+'?download='+encodeURIComponent(item.id+'.'+format);link.download=item.id+'.'+format;
+  const downloadResource=resourceUrl(item[format]);
+  link.href=downloadResource+(downloadResource.includes('?')?'&':'?')+'download='+encodeURIComponent(item.id+'.'+format);link.download=item.id+'.'+format;
   link.onclick=event=>{
    event.preventDefault();
-   if(format==='glb'&&activeItem?.id===item.id&&modelBlob){const blob=modelBlob;const download=window.Spl3Metrics?.downloadClick(item,format,analyticsPreview);fileRuntime.then(({saveModelFile})=>{saveModelFile(blob,item.id+'.glb');download?.ready();}).catch(()=>download?.error('save'));}
+   if(format==='glb'&&activeItem?.id===item.id&&modelBlob){const blob=modelBlob;fileRuntime.then(({saveModelFile})=>saveModelFile(blob,item.id+'.glb'));}
    else downloadModel(item,format,link);
   };
   document.querySelector('#download-'+format+'-size').textContent=size(item[format+'Bytes']);
@@ -104,13 +130,12 @@ function selectModelVariant(){
 modelVariant.addEventListener('change',selectModelVariant);
 async function downloadModel(item,format,link){
  const key=item.id+':'+format;if(modelDownloads.has(key))return;
- const download=window.Spl3Metrics?.downloadClick(item,format,analyticsPreview);
  const label=document.querySelector('#download-'+format+'-size');
  const update=text=>{if(link.dataset.downloadKey===key)label.textContent=text;};
  const task=(async()=>{
   link.setAttribute('aria-busy','true');update('准备下载');
-  try{const {loadModelFile,saveModelFile}=await fileRuntime;const blob=await loadModelFile(item,format,{onProgress:p=>update(Math.round(p*100)+'%')});saveModelFile(blob,item.id+'.'+format);download?.ready();update(size(item[format+'Bytes']));}
-  catch(error){download?.error('fetch');update('下载失败，重试');}
+  try{const {loadModelFile,saveModelFile}=await fileRuntime;const blob=await loadModelFile(item,format,{onProgress:p=>update(Math.round(p*100)+'%')});saveModelFile(blob,item.id+'.'+format);update(size(item[format+'Bytes']));}
+  catch(error){update('下载失败，重试');}
   finally{modelDownloads.delete(key);if(link.dataset.downloadKey===key)link.removeAttribute('aria-busy');}
  })();modelDownloads.set(key,task);
 }
@@ -118,15 +143,15 @@ async function renderSection(){
  const version=++renderVersion;
  pageObserver?.disconnect();pageObserver=undefined;
  const requested=new URL(location.href).searchParams.get('section');
- const active=links.find(link=>link.dataset.section===requested)||links.find(link=>link.dataset.section==='new');
+ const active=links.find(link=>link.dataset.section===requested)||links.find(link=>link.dataset.section===game.defaultSection)||links[0];
  for(const link of links){if(link===active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}
- content.setAttribute('aria-label',active.textContent);document.title=active.textContent+' · spl3 xiaoyu resources pack';
+ content.setAttribute('aria-label',active.textContent);document.title=active.textContent+' · '+game.name+'模型库';
  content.replaceChildren();
  const status=document.createElement('p');status.className='library-status';status.setAttribute('role','status');status.textContent='加载中';content.append(status);
  try{
   const section=active.dataset.section;
   if(!catalogs.has(section)){
-   const response=await fetch('./catalog/'+section+'.json?v=existing-audit-20261102b');if(!response.ok)throw Error(response.status);
+   const response=await fetch('./catalog/'+game.key+'/'+section+'.json?v=production-20261103',{cache:'no-store'});if(!response.ok)throw Error(response.status);
    catalogs.set(section,await response.json());
   }
   if(version!==renderVersion)return;
@@ -148,7 +173,7 @@ async function renderSection(){
    cursor=Math.min(cursor+60,items.length);gallery.append(fragment);
    if(cursor>=items.length){pageObserver?.disconnect();sentinel.remove();}
   }
-  if(!items.length){status.textContent='暂无模型';content.append(status);}else{
+  if(!items.length){status.textContent=game.emptyMessage||'暂无模型';content.append(status);}else{
    addPage();
    if(cursor<items.length){
     content.append(sentinel);
@@ -161,7 +186,6 @@ async function renderSection(){
 document.querySelector('#model-close').addEventListener('click',()=>modelDialog.close());
 document.querySelector('#model-retry').addEventListener('click',()=>{if(activeItem)loadModel(activeItem);});
 modelDialog.addEventListener('close',()=>{
- analyticsPreview?.cancel();analyticsPreview=undefined;
  ++modelVersion;
  modelAbort?.abort();modelAbort=undefined;
  const viewer=modelStage.querySelector('model-viewer');if(viewer)viewer.removeAttribute('src');
