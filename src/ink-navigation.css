@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 10000;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .ink-navigation canvas {
@@ -12,12 +12,12 @@
 }
 
 .ink-navigation-fallback, html[data-ink-arrival]::after {
-  background: #050406;
+  background: #603bff;
 }
 
 html[data-ink-arrival]::after {
   content: "";
-  animation: clear-ink-guard 1ms 1.4s forwards;
+  animation: clear-ink-guard 1ms 4s forwards;
 }
 
 @keyframes clear-ink-guard {

@@ -1,1 +1,9 @@
 #model-background{margin-top:14px;padding:8px 14px;border:1px solid #666;background:#121212;color:#ddd;font:inherit;font-size:13px;pointer-events:auto;cursor:pointer;transition:border-color .25s,color .25s}#model-background[hidden]{display:none}#model-background:hover,#model-background[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
+
+.model-stage{--wall-width:2000px;--wall-height:1000px;isolation:isolate;overflow:hidden;background:#191919}
+.model-stage::before{content:"";position:absolute;inset:0 calc(-1 * var(--wall-width)) calc(-1 * var(--wall-height)) 0;z-index:-1;pointer-events:none;background-repeat:repeat;background-size:var(--wall-width) var(--wall-height)}
+#model-dialog[open] .model-stage::before{background-image:url('./assets/viewer-sticker-wall.svg');animation:sticker-wall-drift 240s linear infinite}
+.model-stage model-viewer{background:transparent}
+@keyframes sticker-wall-drift{to{transform:translate(calc(-1 * var(--wall-width)),calc(-1 * var(--wall-height)))}}
+@media(max-width:598px){.model-stage{--wall-width:1200px;--wall-height:600px}#model-dialog[open] .model-stage::before{animation-duration:144s}}
+@media(prefers-reduced-motion:reduce){#model-dialog[open] .model-stage::before{animation:none}}
