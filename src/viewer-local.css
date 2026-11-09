@@ -7,3 +7,14 @@
 @keyframes sticker-wall-drift{to{transform:translate(calc(-1 * var(--wall-width)),calc(-1 * var(--wall-height)))}}
 @media(max-width:598px){.model-stage{--wall-width:1200px;--wall-height:600px}#model-dialog[open] .model-stage::before{animation-duration:144s}}
 @media(prefers-reduced-motion:reduce){#model-dialog[open] .model-stage::before{animation:none}}
+
+.library-page{--gallery-tile:1508px;isolation:isolate;background:#111}
+.library-page::before{content:"";position:fixed;inset:0 calc(-1 * var(--gallery-tile)) calc(-1 * var(--gallery-tile)) 0;z-index:-1;pointer-events:none;background:url('./assets/library-sticker-wall.svg') repeat;background-size:var(--gallery-tile) var(--gallery-tile);animation:library-wall-drift 240s linear infinite}
+.library-page.model-open::before{animation-play-state:paused}
+@keyframes library-wall-drift{to{transform:translate(calc(-1 * var(--gallery-tile)),calc(-1 * var(--gallery-tile)))}}
+@media(max-width:598px){.library-page{--gallery-tile:1000px}.library-page::before{animation-duration:160s}}
+@media(prefers-reduced-motion:reduce){.library-page::before{animation:none}}
+
+#model-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.model-help{display:none}
+.model-footer{justify-content:flex-end}
