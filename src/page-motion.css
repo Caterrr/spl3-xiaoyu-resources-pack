@@ -1,0 +1,19 @@
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:page-out 420ms ease-in-out both}
+::view-transition-new(root){animation:page-in 420ms ease-in-out both}
+@keyframes page-out{to{opacity:0}}
+@keyframes page-in{from{opacity:0}to{opacity:1}}
+html[data-page-motion="section"]{view-transition-name:none}
+html[data-page-motion="section"] #content{view-transition-name:library-content}
+::view-transition-old(library-content){animation:page-out 420ms ease-in-out both}
+::view-transition-new(library-content){animation:page-in 420ms ease-in-out both}
+::view-transition-group(library-content){animation-duration:420ms}
+/* The page fade replaces the homepage's staggered entrance. */
+.portal-page .site-header,.portal-page .game-choice{animation:none}
+#model-dialog.motion-active::backdrop{background:transparent}
+#model-dialog.motion-active{will-change:opacity}
+@media(prefers-reduced-motion:reduce){
+ @view-transition{navigation:none}
+ ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+ body{animation:none!important}
+}

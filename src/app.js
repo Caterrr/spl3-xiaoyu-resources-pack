@@ -102,6 +102,7 @@ async function loadModel(item){
     modelBackground.setAttribute('aria-pressed',String(allVisible));modelBackground.title=allVisible?'隐藏背景':'显示背景';
    }
    modelDialog.dataset.state='ready';modelStatus.textContent='';
+   window.modelMotion?.ready();
    requestAnimationFrame(()=>requestAnimationFrame(()=>{if(version===modelVersion&&modelDialog.open&&viewer.modelIsVisible)attempt?.ready();}));
   }});
   viewer.addEventListener('error',()=>{if(version===modelVersion){attempt?.error('viewer');showModelError();}});
@@ -110,6 +111,7 @@ async function loadModel(item){
  }catch(error){if(version===modelVersion&&error.name!=='AbortError'){attempt?.error('load');showModelError();}}
 }
 function showModelError(){
+ window.modelMotion?.ready();
  modelDialog.dataset.state='error';
  modelStatus.textContent='预览暂时无法加载，仍可下载模型';
 }
@@ -121,9 +123,8 @@ function openModel(item,trigger){
   const option=document.createElement('option');option.value=variant.item.id;option.textContent=variant.label;modelVariant.append(option);
  }
  if(item.mapVariants?.length)modelVariant.value=item.mapDefaultVariantId;
- modelDialog.showModal();
- document.body.classList.add('model-open');
- selectModelVariant();
+ const show=()=>{modelDialog.showModal();document.body.classList.add('model-open');selectModelVariant();};
+ if(window.modelMotion)window.modelMotion.open(trigger,show);else show();
 }
 function selectModelVariant(){
  const item=activeGroup.mapVariants?.find(variant=>variant.item.id===modelVariant.value)?.item||activeGroup;
@@ -205,9 +206,12 @@ async function renderSection(){
   }
  }catch(error){if(version===renderVersion)status.textContent='暂时无法加载，请刷新重试';}
 }
-document.querySelector('#model-close').addEventListener('click',()=>modelDialog.close());
+const closeModel=()=>window.modelMotion?window.modelMotion.close():modelDialog.close();
+document.querySelector('#model-close').addEventListener('click',closeModel);
+modelDialog.addEventListener('cancel',event=>{event.preventDefault();closeModel();});
 document.querySelector('#model-retry').addEventListener('click',()=>{if(activeItem)loadModel(activeItem);});
 modelDialog.addEventListener('close',()=>{
+ window.modelMotion?.cleanup();
  analyticsPreview?.cancel();analyticsPreview=undefined;
  ++modelVersion;
  modelAbort?.abort();modelAbort=undefined;
@@ -221,12 +225,12 @@ for(const link of links){
   link.addEventListener('click',event=>{
     if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();
-    if(location.href!==link.href)history.pushState(null,'',link.href);
-    window.scrollTo(0,0);
-    renderSection();
+    if(location.href===link.href)return;
+    history.pushState(null,'',link.href);
+    window.changeLibrarySection(async()=>{window.scrollTo(0,0);await renderSection();});
   });
 }
-window.addEventListener('popstate',renderSection);
+window.addEventListener('popstate',()=>{if(modelDialog.open)modelDialog.close();window.changeLibrarySection(renderSection);});
 renderSection();
 
 const socialDialog=document.querySelector('#social-dialog');
