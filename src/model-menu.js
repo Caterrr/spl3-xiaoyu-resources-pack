@@ -36,13 +36,19 @@
 
   for (const control of controls) {
     const {menu, trigger, panel, items} = control;
+    let triggerPointer;
+    trigger.addEventListener('pointerdown', event => {
+      triggerPointer = event.pointerType;
+    });
     trigger.addEventListener('click', event => {
-      setOpen(control, event.detail > 0 && hover.matches ? true : menu.dataset.open !== 'true');
+      const mouseClick = event.detail > 0 && hover.matches && (event.pointerType || triggerPointer) === 'mouse';
+      setOpen(control, mouseClick || menu.dataset.open !== 'true');
     });
     menu.addEventListener('pointerenter', event => {
       if (hover.matches && event.pointerType === 'mouse') setOpen(control, true);
     });
-    menu.addEventListener('pointerleave', () => {
+    menu.addEventListener('pointerleave', event => {
+      if (!hover.matches || event.pointerType !== 'mouse') return;
       control.closeTimer = setTimeout(() => {
         if (!menu.contains(document.activeElement) || !document.activeElement.matches(':focus-visible')) setOpen(control, false);
       }, 200);

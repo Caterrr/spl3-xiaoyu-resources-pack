@@ -36,7 +36,7 @@ socialDialog.addEventListener('close',()=>socialTrigger?.focus({preventScroll:tr
 
 // One state for desktop hover, keyboard navigation, and touch/narrow click.
 const aboutRows=[...document.querySelectorAll('.about-section')];
-const hoverAnswers=matchMedia('(hover:hover) and (pointer:fine) and (min-width:801px)');
+const hoverAnswers=matchMedia('(hover:hover) and (pointer:fine) and (width > 1080px)');
 let activeAnswer,answerCloseTimer;
 function setAnswer(row){
   clearTimeout(answerCloseTimer);
@@ -58,9 +58,14 @@ function scheduleAnswerClose(row){
 }
 for(const row of aboutRows){
   const trigger=row.querySelector('.about-trigger');
-  row.addEventListener('pointerenter',()=>{if(hoverAnswers.matches)setAnswer(row);});
-  row.addEventListener('pointerleave',()=>{if(hoverAnswers.matches)scheduleAnswerClose(row);});
-  trigger.addEventListener('click',()=>setAnswer(hoverAnswers.matches?row:activeAnswer===row?null:row));
+  let triggerPointer;
+  trigger.addEventListener('pointerdown',event=>{triggerPointer=event.pointerType;});
+  row.addEventListener('pointerenter',event=>{if(hoverAnswers.matches&&event.pointerType==='mouse')setAnswer(row);});
+  row.addEventListener('pointerleave',event=>{if(hoverAnswers.matches&&event.pointerType==='mouse')scheduleAnswerClose(row);});
+  trigger.addEventListener('click',event=>{
+    const keepOpen=hoverAnswers.matches&&(event.detail===0||(event.pointerType||triggerPointer)==='mouse');
+    setAnswer(keepOpen||activeAnswer!==row?row:null);
+  });
   row.addEventListener('focusin',event=>{if(event.target.matches(':focus-visible'))setAnswer(row);});
   row.addEventListener('focusout',()=>{
     setTimeout(()=>{if(activeAnswer===row&&!row.contains(document.activeElement)&&!row.matches(':hover')&&!socialDialog.open)setAnswer(null);},0);
