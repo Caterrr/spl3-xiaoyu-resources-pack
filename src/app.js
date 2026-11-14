@@ -1,7 +1,7 @@
 const resourceBase=document.querySelector('meta[name=resource-base]')?.content||'';
 const resourceUrl=path=>new URL(path,resourceBase||location.href).href;
 const game=window.libraryGame;
-const links=[...document.querySelectorAll('.navigation a[data-section]')].filter(link=>link.dataset.game===game.key);
+const links=[...document.querySelectorAll('.navigation a[data-section]')].filter(link=>link.dataset.game===game.key && link.dataset.section!=='customizer');
 const content=document.querySelector('#content');
 const catalogs=new Map();
 let renderVersion=0;

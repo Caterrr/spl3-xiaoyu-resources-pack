@@ -19,9 +19,10 @@
 
   function syncActive() {
     const params = new URLSearchParams(location.search);
-    const libraryPage = location.pathname.endsWith('/library.html');
-    const gameKey = params.get('game') || 'spl3';
-    const section = params.get('section') || (gameKey === 'spl3' ? 'new' : 'weapons');
+    const customizerPage = location.pathname.endsWith('/customizer.html');
+    const libraryPage = customizerPage || location.pathname.endsWith('/library.html');
+    const gameKey = customizerPage ? 'raiders' : params.get('game') || 'spl3';
+    const section = customizerPage ? 'customizer' : params.get('section') || (gameKey === 'spl3' ? 'new' : 'weapons');
     for (const control of controls) {
       const active = libraryPage && control.menu.dataset.game === gameKey;
       control.menu.dataset.active = String(active);
