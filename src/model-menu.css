@@ -26,6 +26,14 @@
 .site-header .game-subnavigation a[aria-current=page],.site-header .game-subnavigation a:hover,.site-header .game-subnavigation a:focus-visible{color:#fff;background:none}
 .site-header .game-subnavigation a:hover,.site-header .game-subnavigation a:focus-visible{transform:translateX(4px)}
 .site-header .game-subnavigation a[aria-current=page]::after,.site-header .game-subnavigation a:hover::after,.site-header .game-subnavigation a:focus-visible::after{transform:scaleX(1)}
+.site-header .menu-spectrum{display:inline-block;color:#ffb06a}
+@supports (background-clip:text) or (-webkit-background-clip:text){
+ .site-header .menu-spectrum{background-image:linear-gradient(90deg,#ff976b 0%,#f6d56d 16.667%,#7de1b7 33.333%,#6bcdfa 50%,#bc9bff 66.667%,#f58bc9 83.333%,#ff976b 100%);background-size:200% 100%;background-repeat:repeat-x;background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:miracle-ink-flow 7s linear infinite;animation-play-state:paused}
+ .game-menu[data-open=true] .menu-spectrum{animation-play-state:running}
+}
+@keyframes miracle-ink-flow{from{background-position:0% 50%}to{background-position:200% 50%}}
+@media(prefers-reduced-motion:reduce){.site-header .menu-spectrum{animation:none}}
+@media(forced-colors:active){.site-header .menu-spectrum{background:none;color:LinkText;-webkit-text-fill-color:currentColor;animation:none}}
 @media(max-width:598px){
  .site-header .header-layout{gap:12px}
  .site-header .game-navigation{--menu-font-size:16px;gap:22px}
