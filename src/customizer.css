@@ -18,7 +18,7 @@
 .editor-panel{flex:1;overflow:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#555 transparent;padding:2px 4px 12px 2px}
 .choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px 10px}
 .choice-button{position:relative;display:block;min-width:0;aspect-ratio:1;overflow:hidden;border:1px solid transparent;background:#191919;padding:0;cursor:pointer}
-.choice-button img{display:block;width:100%;height:100%;object-fit:contain;transition:transform 360ms var(--ease)}
+.choice-button img{position:absolute;left:0;top:0;display:block;width:100%;height:100%;object-fit:contain;transition:transform 360ms var(--ease)}
 .choice-button[aria-pressed=true]{border-color:var(--accent)}
 .choice-button:focus-visible{outline-offset:1px}
 .head-field{border:0;padding:0;margin:0 0 22px;min-width:0}.head-field legend{font-size:14px;margin-bottom:14px}.choices.brow-choices{grid-template-columns:repeat(4,minmax(0,1fr))}
