@@ -1,10 +1,15 @@
 import * as THREE from './vendor/three/build/three.module.min.js';
 import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.js';
-import {DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter} from './customizer-core.js?v=cdcdf13e8e2a';
+const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
+const gameName=gameKey==='spl3'?'喷3':'涂击队';
+const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=e65bc623e1da',core:'./customizer-spl3-core.js?v=28024c0e813a'}};
+let DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearFits,headgearRule,wearFlags;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
-const storageKey='raiders-character-v1';
+const storageKey=gameKey+'-character-v1';
+let wearKind='clothes';
+const wearKey=()=>wearKind==='clothes'?'outfit':wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
 function updateDownload(){download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
@@ -23,21 +28,28 @@ function selectedButtons(container,id){for(const b of container.querySelectorAll
 function sync(){
   for(const input of document.querySelectorAll('.identity-options input'))input.checked=input.value===state[input.name];
   $('#hair-color').value=state.color;$('#hair-hex').value=state.color;
-  selectedButtons($('#hair-choices'),state.hair);selectedButtons($('#outfit-choices'),state.outfit);
+  selectedButtons($('#hair-choices'),state.hair);selectedButtons($('#outfit-choices'),state[wearKey()]);
   selectedButtons($('#brow-choices'),state.brow);
   selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
-  $('#hair-notice').hidden=!catalog.outfits.find(x=>x.id===state.outfit).hideHair;
+  const hidesHair=gameKey==='spl3'?headgearRule(catalog.headgear.find(x=>x.id===state.headgear),state).hideHair:catalog.outfits.find(x=>x.id===state.outfit)?.hideHair;
+  $('#hair-notice').hidden=!hidesHair;
+  if(gameKey==='spl3'){
+    const integrated=!!wearFlags(catalog,state).integratedShoes;
+    $('#wear-notice').hidden=wearKind!=='shoes'||!integrated;
+    for(const button of $('#outfit-choices').querySelectorAll('button'))button.disabled=wearKind==='shoes'&&integrated;
+  }
 }
 function choices(target,entries,onSelect){
   target.replaceChildren(...entries.map(entry=>{
     const button=document.createElement('button');button.type='button';button.className='choice-button';button.dataset.id=entry.id;button.setAttribute('aria-pressed', 'false');button.setAttribute('aria-label',entry.name);
-    const img=document.createElement('img');img.src=entry.poster;img.alt='';img.loading='lazy';img.width=128;img.height=128;
-    button.append(img);button.addEventListener('click',()=>onSelect(entry.id));return button;
+    if(entry.poster){const img=document.createElement('img');img.src=entry.poster;img.alt='';img.loading='lazy';img.width=128;img.height=128;button.append(img);}
+    else{const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 40 40');icon.setAttribute('aria-hidden','true');icon.innerHTML='<circle cx="20" cy="20" r="13"/><path d="m11 29 18-18"/>';button.classList.add('choice-none');button.append(icon);}
+    button.addEventListener('click',()=>onSelect(entry.id));return button;
   }));
 }
-function hairChoices(){choices($('#hair-choices'),catalog.hair.filter(x=>x.species===state.species),id=>change({hair:id}));}
+function hairChoices(){choices($('#hair-choices'),catalog.hair.filter(x=>x.species===state.species).map(x=>({...x,poster:x.variants?.[state.gender]?.poster||x.poster})),id=>change({hair:id}));}
 function browChoices(){choices($('#brow-choices'),catalog.brows.filter(x=>x.species===state.species&&x.gender===state.gender).map(x=>({...x,id:String(x.style)})),id=>change({brow:Number(id)}));}
-function outfitChoices(){choices($('#outfit-choices'),catalog.outfits,id=>change({outfit:id}));selectedButtons($('#outfit-choices'),state.outfit);}
+function outfitChoices(){const entries=gameKey==='spl3'?catalog[wearKind].filter(e=>supports(e,state.gender)&&(wearKind!=='headgear'||headgearFits(e,state))):catalog.outfits;choices($('#outfit-choices'),entries.map(x=>({...x,poster:x.variants?.[state.gender]?.poster||x.poster})),id=>change({[wearKey()]:id}));selectedButtons($('#outfit-choices'),state[wearKey()]);if(gameKey==='spl3')sync();}
 function swatches(target,entries,onSelect){
   target.replaceChildren(...entries.map(e=>{const b=document.createElement('button');b.type='button';b.className='swatch';b.style.setProperty('--swatch',e.color);b.dataset.id=e.id;b.title=e.name;b.setAttribute('aria-label',e.name);b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>onSelect(e.id));return b;}));
 }
@@ -55,9 +67,10 @@ async function rebuild(){
 }
 function change(patch){
   const previous={...state};state=normalize({...state,...patch},catalog);persist();
-  if(previous.species!==state.species)hairChoices();
+  if(previous.species!==state.species||gameKey==='spl3'&&previous.gender!==state.gender)hairChoices();
+  if(gameKey==='spl3'&&['species','gender','hair'].some(k=>state[k]!==previous[k]))outfitChoices();
   if(previous.species!==state.species||previous.gender!==state.gender)browChoices();sync();
-  if(['species','gender','hair','brow','outfit'].some(k=>state[k]!==previous[k])){rebuild();return;}
+  if(['species','gender','hair','brow','outfit','headgear','shoes'].some(k=>state[k]!==previous[k])){rebuild();return;}
   if(model&&!loading&&!hasError){if(previous.color!==state.color)tint(model.tints,state.color);if(previous.eye!==state.eye)setEye(model,state.eye);model.state={...state};render();}
 }
 function activateTab(tab){
@@ -65,7 +78,13 @@ function activateTab(tab){
 }
 async function init(){
   try{
-    const response=await fetch('./catalog/raiders/customizer.json?v=afa33936a92f');if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
+    document.documentElement.dataset.game=gameKey;document.title='奇迹鱿鱿 · '+gameName;
+    ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearFits,headgearRule,wearFlags}=await import(profiles[gameKey].core));
+    const response=await fetch(profiles[gameKey].catalog);if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
+    if(gameKey==='spl3'&&catalog.game!=='spl3'||catalog.game&&catalog.game!==gameKey)throw Error('搭配目录不匹配，请刷新重试');
+    $('#wear-categories').hidden=gameKey!=='spl3';
+    if(gameKey==='spl3')$('#hair-notice').textContent='当前发饰会遮住发型；取下后恢复所选发型。';
+    for(const button of document.querySelectorAll('#wear-categories button'))button.addEventListener('click',()=>{wearKind=button.dataset.kind;for(const b of document.querySelectorAll('#wear-categories button'))b.setAttribute('aria-pressed',String(b===button));outfitChoices();});
     let saved;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
     state=normalize(saved||DEFAULTS,catalog);
     renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.LinearToneMapping;renderer.toneMappingExposure=1;
@@ -92,8 +111,8 @@ async function init(){
       const selected=model,selection={...model.state};
       try{
         const bytes=await exportCharacter(selected),blob=new Blob([bytes],{type:'model/gltf-binary'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-        const title=catalog.outfits.find(x=>x.id===selection.outfit).name;
-        a.href=url;a.download=`涂击队-${selection.species==='squid'?'鱿鱼':'章鱼'}-${selection.gender==='female'?'女':'男'}-${title}.glb`;a.style.display='none';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+        const title=(gameKey==='spl3'?catalog.clothes:catalog.outfits).find(x=>x.id===selection.outfit).name;
+        a.href=url;a.download=`${gameName}-${selection.species==='squid'?'鱿鱼':'章鱼'}-${selection.gender==='female'?'女':'男'}-${title}.glb`;a.style.display='none';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
         downloadStatus.textContent=`已生成 GLB · ${(bytes.byteLength/1024/1024).toFixed(1)} MB`;
       }catch(e){downloadStatus.textContent='下载未完成，请重新点击下载。';console.error(e);}
       finally{exporting=false;updateDownload();}

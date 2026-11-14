@@ -123,7 +123,7 @@ export async function assemble(catalog,state){
     return {character,rig,tints,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state}};
   }catch(e){dispose(character);if(!wear.scene.parent)dispose(wear.scene);if(!brow.scene.parent)dispose(brow.scene);if(hair&&!hair.scene.parent)dispose(hair.scene);throw e;}
 }
-export function setEye(model,index){model.eyeCanvas.ctx.clearRect(0,0,model.eyeCanvas.canvas.width,model.eyeCanvas.canvas.height);model.eyeCanvas.ctx.drawImage(model.eyeImages[index],0,0);model.eyeMaterial.map.needsUpdate=true;model.state.eye=index;}
+export function setEye(model,index){const {canvas,ctx}=model.eyeCanvas;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(model.eyeImages[index],0,0,canvas.width,canvas.height);model.eyeMaterial.map.needsUpdate=true;model.state.eye=index;}
 export async function exportCharacter(model){
   const scene=clone(model.character),materials=new Map();
   scene.traverse(o=>{

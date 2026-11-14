@@ -6,8 +6,20 @@
     trigger: menu.querySelector('.game-menu-trigger'),
     panel: menu.querySelector('.game-subnavigation'),
     items: [...menu.querySelectorAll('.game-subnavigation a')],
+    groups: [...menu.querySelectorAll('.gear-menu')],
     closeTimer: undefined,
   }));
+
+  function setGroupOpen(group, open) {
+    group.dataset.open = String(open);
+    group.querySelector('.gear-menu-trigger').setAttribute('aria-expanded', String(open));
+    group.querySelector('.gear-subnavigation').inert = !open;
+  }
+
+  function visibleItems(control) {
+    return [...control.panel.querySelectorAll('a, .gear-menu-trigger')].filter(item =>
+      !item.closest('.gear-subnavigation') || item.closest('.gear-menu').dataset.open === 'true');
+  }
 
   function setOpen(control, open) {
     clearTimeout(control.closeTimer);
@@ -21,7 +33,7 @@
     const params = new URLSearchParams(location.search);
     const customizerPage = location.pathname.endsWith('/customizer.html');
     const libraryPage = customizerPage || location.pathname.endsWith('/library.html');
-    const gameKey = customizerPage ? 'raiders' : params.get('game') || 'spl3';
+    const gameKey = customizerPage ? (params.get('game') === 'spl3' ? 'spl3' : 'raiders') : params.get('game') || 'spl3';
     const section = customizerPage ? 'customizer' : params.get('section') || (gameKey === 'spl3' ? 'new' : 'weapons');
     for (const control of controls) {
       const active = libraryPage && control.menu.dataset.game === gameKey;
@@ -32,11 +44,33 @@
         if (active && link.dataset.section === section) link.setAttribute('aria-current', 'page');
         else link.removeAttribute('aria-current');
       }
+      for (const group of control.groups) {
+        const current = active && [...group.querySelectorAll('a')].some(link => link.dataset.section === section);
+        group.dataset.active = String(current);
+        if (current) setGroupOpen(group, true);
+      }
     }
   }
 
   for (const control of controls) {
-    const {menu, trigger, panel, items} = control;
+    const {menu, trigger, panel, items, groups} = control;
+    for (const group of groups) {
+      const button = group.querySelector('.gear-menu-trigger');
+      button.addEventListener('click', () => setGroupOpen(group, group.dataset.open !== 'true'));
+      group.addEventListener('keydown', event => {
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          event.stopPropagation();
+          setGroupOpen(group, true);
+          group.querySelector('a').focus();
+        } else if (event.key === 'ArrowLeft' || event.key === 'Escape' && group.dataset.open === 'true') {
+          event.preventDefault();
+          event.stopPropagation();
+          setGroupOpen(group, false);
+          button.focus();
+        }
+      });
+    }
     let triggerPointer;
     trigger.addEventListener('pointerdown', event => {
       triggerPointer = event.pointerType;
@@ -58,7 +92,8 @@
       if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
       event.preventDefault();
       setOpen(control, true);
-      (event.key === 'ArrowUp' ? items.at(-1) : items.find(link => link.hasAttribute('aria-current')) || items[0]).focus();
+      const choices = visibleItems(control);
+      (event.key === 'ArrowUp' ? choices.at(-1) : choices.find(link => link.hasAttribute('aria-current')) || choices[0]).focus();
     });
     menu.addEventListener('keydown', event => {
       if (event.key === 'Escape') {
@@ -67,9 +102,10 @@
         trigger.focus({preventScroll: true});
       } else if (panel.contains(event.target) && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
         event.preventDefault();
-        const index = items.indexOf(document.activeElement);
-        const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
-        items[next].focus();
+        const choices = visibleItems(control);
+        const index = choices.indexOf(document.activeElement);
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? choices.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + choices.length) % choices.length;
+        choices[next].focus();
       }
     });
     menu.addEventListener('focusout', () => {
