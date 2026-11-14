@@ -23,6 +23,7 @@
 .choice-button span{line-height:1.5;overflow-wrap:anywhere}
 .choice-button[aria-pressed=true]{border-bottom-color:var(--accent);color:#fff}.choice-button[aria-pressed=true] img{outline:1px solid var(--accent);outline-offset:-1px}
 .choice-button:hover{color:#fff}.choice-button:focus-visible{outline-offset:1px}
+.head-field{border:0;padding:0;margin:0 0 22px;min-width:0}.head-field legend{font-size:14px;margin-bottom:14px}.brow-choices{grid-template-columns:repeat(4,minmax(0,1fr))}
 .outfit-search{margin-bottom:16px}.choice-notice{margin:0 0 14px;color:#aaa;font-size:13px;line-height:1.6}
 .color-field{border:0;padding:0;margin:0 0 28px;min-width:0}.color-field legend{font-size:14px;margin-bottom:14px}
 .swatches{display:flex;flex-wrap:wrap;gap:12px}.swatch{display:block;position:relative;width:32px;height:32px;padding:0;border:1px solid #666;border-radius:50%;background:var(--swatch);cursor:pointer}

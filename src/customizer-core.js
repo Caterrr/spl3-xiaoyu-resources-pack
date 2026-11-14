@@ -3,7 +3,7 @@ import {GLTFLoader} from './vendor/three/examples/jsm/loaders/GLTFLoader.js';
 import {GLTFExporter} from './vendor/three/examples/jsm/exporters/GLTFExporter.js';
 import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
 
-export const DEFAULTS = Object.freeze({species:'squid',gender:'female',hair:'Har_SQD001_F',outfit:'Clt_AGL001',eye:0,color:'#ff5d1c'});
+export const DEFAULTS = Object.freeze({species:'squid',gender:'female',hair:'Har_SQD001_F',brow:1,outfit:'Clt_AGL001',eye:0,color:'#ff5d1c'});
 export function normalize(input, catalog) {
   const s={...DEFAULTS,...input};
   if(!['squid','octopus'].includes(s.species))s.species=DEFAULTS.species;
@@ -12,10 +12,12 @@ export function normalize(input, catalog) {
   if(!hairs.some(x=>x.id===s.hair))s.hair=hairs[0].id;
   if(!catalog.outfits.some(x=>x.id===s.outfit))s.outfit=DEFAULTS.outfit;
   s.eye=Number.isInteger(Number(s.eye))?Math.max(0,Math.min(20,Number(s.eye))):0;
+  s.brow=Number.isInteger(Number(s.brow))?Math.max(0,Math.min(3,Number(s.brow))):DEFAULTS.brow;
   if(!/^#[\da-f]{6}$/i.test(s.color))s.color=DEFAULTS.color;
-  return {species:s.species,gender:s.gender,hair:s.hair,outfit:s.outfit,eye:s.eye,color:s.color.toLowerCase()};
+  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,eye:s.eye,color:s.color.toLowerCase()};
 }
 export function avatarId(s){return 'Player0'+(Number(s.species==='octopus')*2+Number(s.gender==='male'));}
+export function browId(s){return `Eyb_${s.species==='octopus'?'OCT':'SQD'}00${s.brow}_${s.gender==='male'?'M':'F'}`;}
 
 const cache=new Map();
 let cachedBytes=0;
@@ -103,23 +105,23 @@ async function maskBody(mesh,url){
 
 export async function assemble(catalog,state){
   const id=avatarId(state),outfit=catalog.outfits.find(x=>x.id===state.outfit);
-  const loaded=await Promise.allSettled([loadAsset(catalog.avatars.find(x=>x.id===id)),loadAsset(outfit),...(!outfit.hideHair?[loadAsset(catalog.hair.find(x=>x.id===state.hair))]:[])]);
+  const loaded=await Promise.allSettled([loadAsset(catalog.avatars.find(x=>x.id===id)),loadAsset(outfit),loadAsset(catalog.brows.find(x=>x.id===browId(state))),...(!outfit.hideHair?[loadAsset(catalog.hair.find(x=>x.id===state.hair))]:[])]);
   const failure=loaded.find(x=>x.status==='rejected');
   if(failure){for(const x of loaded)if(x.status==='fulfilled')dispose(x.value.scene);throw failure.reason;}
-  const [body,wear,hair]=loaded.map(x=>x.value),character=new THREE.Group();character.name='Raiders_Character';
+  const [body,wear,brow,hair]=loaded.map(x=>x.value),character=new THREE.Group();character.name='Raiders_Character';
   character.add(body.scene);
   try{
     const rig=rigOf(body.scene),roles={};body.scene.traverse(o=>{if(o.userData.role)roles[o.userData.role]=o;});
     if(!roles.body||!roles.eye||!roles.face||!roles.faceNoEars)throw Error('角色部件不完整');
     roles.face.visible=!outfit.hideEars;roles.faceNoEars.visible=!!outfit.hideEars;
-    joinAsset(character,wear.scene,rig);if(hair)joinAsset(character,hair.scene,rig);
+    joinAsset(character,wear.scene,rig);joinAsset(character,brow.scene,rig);if(hair)joinAsset(character,hair.scene,rig);
     await maskBody(roles.body,wear.scene.userData.bodyMasks[id]);
     const eyeImages=await Promise.all(body.scene.userData.eyes.map(image));
     const eyeCanvas=canvasImage(eyeImages[state.eye]);replaceMap(roles.eye.material,eyeCanvas.canvas);
     const tints=await prepareTints(character);tint(tints,state.color);
     character.updateMatrixWorld(true);
     return {character,rig,tints,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state}};
-  }catch(e){dispose(character);if(!wear.scene.parent)dispose(wear.scene);if(hair&&!hair.scene.parent)dispose(hair.scene);throw e;}
+  }catch(e){dispose(character);if(!wear.scene.parent)dispose(wear.scene);if(!brow.scene.parent)dispose(brow.scene);if(hair&&!hair.scene.parent)dispose(hair.scene);throw e;}
 }
 export function setEye(model,index){model.eyeCanvas.ctx.clearRect(0,0,model.eyeCanvas.canvas.width,model.eyeCanvas.canvas.height);model.eyeCanvas.ctx.drawImage(model.eyeImages[index],0,0);model.eyeMaterial.map.needsUpdate=true;model.state.eye=index;}
 export async function exportCharacter(model){

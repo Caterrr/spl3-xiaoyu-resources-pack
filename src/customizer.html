@@ -5,7 +5,7 @@
 <meta name="description" content="搭配涂击队角色、发型与服装，实时预览并下载带骨骼和贴图的 GLB。">
 <link rel="icon" href="./assets/site-icon.ico"><link rel="stylesheet" href="./styles.css?v=0bea74d42a71">
 <link rel="stylesheet" href="./model-menu.css?v=nav-hover"><link rel="stylesheet" href="./typography.css?v=a554d1e98007">
-<link rel="stylesheet" href="./responsive.css?v=92ea0f60204c"><link rel="stylesheet" href="./customizer.css?v=d6d5ca427f72">
+<link rel="stylesheet" href="./responsive.css?v=92ea0f60204c"><link rel="stylesheet" href="./customizer.css?v=65789e751246">
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
 </head><body class="customizer-page">
 <header class="site-header">
@@ -73,9 +73,9 @@
 <aside class="customizer-controls" aria-label="搭配选项">
 <div class="identity-fields"><label>种族<select id="species"><option value="squid">墨灵</option><option value="octopus">章鱼</option></select></label><label>性别<select id="gender"><option value="female">女</option><option value="male">男</option></select></label></div>
 <div class="editor-tabs" role="tablist" aria-label="搭配类别">
-<button type="button" role="tab" id="tab-hair" aria-controls="panel-hair" aria-selected="true">发型</button><button type="button" role="tab" id="tab-outfit" aria-controls="panel-outfit" aria-selected="false" tabindex="-1">服装</button><button type="button" role="tab" id="tab-color" aria-controls="panel-color" aria-selected="false" tabindex="-1">颜色</button>
+<button type="button" role="tab" id="tab-hair" aria-controls="panel-hair" aria-selected="true">头部</button><button type="button" role="tab" id="tab-outfit" aria-controls="panel-outfit" aria-selected="false" tabindex="-1">服装</button><button type="button" role="tab" id="tab-color" aria-controls="panel-color" aria-selected="false" tabindex="-1">颜色</button>
 </div>
-<div id="panel-hair" class="editor-panel" role="tabpanel" aria-labelledby="tab-hair"><p class="choice-notice" id="hair-notice" hidden>这套服装的头盔会遮住发型；换下后恢复所选发型。</p><div class="choices" id="hair-choices"></div></div>
+<div id="panel-hair" class="editor-panel" role="tabpanel" aria-labelledby="tab-hair"><p class="choice-notice" id="hair-notice" hidden>这套服装的头盔会遮住发型；换下后恢复所选发型。</p><fieldset class="head-field"><legend>眉毛</legend><div class="choices brow-choices" id="brow-choices"></div></fieldset><fieldset class="head-field"><legend>发型</legend><div class="choices" id="hair-choices"></div></fieldset></div>
 <div id="panel-outfit" class="editor-panel" role="tabpanel" aria-labelledby="tab-outfit" hidden><input id="outfit-search" class="outfit-search" type="search" placeholder="搜索服装" aria-label="搜索服装"><div class="choices" id="outfit-choices"></div><p id="outfit-empty" class="choice-notice" hidden>没有匹配的服装</p></div>
 <div id="panel-color" class="editor-panel" role="tabpanel" aria-labelledby="tab-color" hidden>
 <fieldset class="color-field"><legend>头发颜色</legend><div class="swatches" id="hair-swatches" role="group" aria-label="头发预设颜色"></div><div class="color-inputs"><input id="hair-color" type="color" value="#ff5d1c" aria-label="选择头发颜色"><input id="hair-hex" type="text" value="#ff5d1c" maxlength="7" spellcheck="false" aria-label="头发十六进制颜色值"></div></fieldset>
@@ -88,4 +88,4 @@
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="./model-menu.js?v=1fe3b101fbc9" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=a45047d570ba"></script></body></html>
+<script src="./model-menu.js?v=1fe3b101fbc9" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=7a7ae2250868"></script></body></html>

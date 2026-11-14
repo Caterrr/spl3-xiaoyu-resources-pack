@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three/build/three.module.min.js';
 import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.js';
-import {DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter} from './customizer-core.js?v=d8206a049cfd';
+import {DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter} from './customizer-core.js?v=cdcdf13e8e2a';
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
@@ -24,6 +24,7 @@ function sync(){
   $('#species').value=state.species;$('#gender').value=state.gender;
   $('#hair-color').value=state.color;$('#hair-hex').value=state.color;
   selectedButtons($('#hair-choices'),state.hair);selectedButtons($('#outfit-choices'),state.outfit);
+  selectedButtons($('#brow-choices'),state.brow);
   selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
   $('#hair-notice').hidden=!catalog.outfits.find(x=>x.id===state.outfit).hideHair;
 }
@@ -36,6 +37,7 @@ function choices(target,entries,onSelect){
   }));
 }
 function hairChoices(){choices($('#hair-choices'),catalog.hair.filter(x=>x.species===state.species),id=>change({hair:id}));}
+function browChoices(){choices($('#brow-choices'),catalog.brows.filter(x=>x.species===state.species&&x.gender===state.gender).map(x=>({...x,id:String(x.style)})),id=>change({brow:Number(id)}));}
 function outfitChoices(){const query=$('#outfit-search').value.trim().toLowerCase();const entries=catalog.outfits.filter(x=>x.name.toLowerCase().includes(query));choices($('#outfit-choices'),entries,id=>change({outfit:id}));$('#outfit-empty').hidden=entries.length>0;selectedButtons($('#outfit-choices'),state.outfit);}
 function swatches(target,entries,onSelect){
   target.replaceChildren(...entries.map(e=>{const b=document.createElement('button');b.type='button';b.className='swatch';b.style.setProperty('--swatch',e.color);b.dataset.id=e.id;b.title=e.name;b.setAttribute('aria-label',e.name);b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>onSelect(e.id));return b;}));
@@ -54,8 +56,9 @@ async function rebuild(){
 }
 function change(patch){
   const previous={...state};state=normalize({...state,...patch},catalog);persist();
-  if(previous.species!==state.species)hairChoices();sync();
-  if(['species','gender','hair','outfit'].some(k=>state[k]!==previous[k])){rebuild();return;}
+  if(previous.species!==state.species)hairChoices();
+  if(previous.species!==state.species||previous.gender!==state.gender)browChoices();sync();
+  if(['species','gender','hair','brow','outfit'].some(k=>state[k]!==previous[k])){rebuild();return;}
   if(model&&!loading&&!hasError){if(previous.color!==state.color)tint(model.tints,state.color);if(previous.eye!==state.eye)setEye(model,state.eye);model.state={...state};render();}
 }
 function activateTab(tab){
@@ -63,7 +66,7 @@ function activateTab(tab){
 }
 async function init(){
   try{
-    const response=await fetch('./catalog/raiders/customizer.json?v=06ee06844b9a');if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
+    const response=await fetch('./catalog/raiders/customizer.json?v=4ede3dcc607e');if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
     let saved;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
     state=normalize(saved||DEFAULTS,catalog);
     renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.LinearToneMapping;renderer.toneMappingExposure=1;
@@ -72,7 +75,7 @@ async function init(){
     scene.add(new THREE.HemisphereLight(0xffffff,0x6f737e,2.6));const key=new THREE.DirectionalLight(0xffffff,2.5);key.position.set(3,5,5);scene.add(key);const fill=new THREE.DirectionalLight(0xaabfff,1.2);fill.position.set(-3,2,-3);scene.add(fill);
     controls=new OrbitControls(camera,renderer.domElement);controls.minDistance=.7;controls.maxDistance=7;controls.maxPolarAngle=Math.PI*.95;controls.enablePan=true;controls.addEventListener('change',render);controls.listenToKeyEvents(renderer.domElement);
     new ResizeObserver(()=>{const r=stage.getBoundingClientRect();camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);fitCamera();}).observe(stage);
-    resetCamera();hairChoices();outfitChoices();
+    resetCamera();hairChoices();browChoices();outfitChoices();
     swatches($('#hair-swatches'),['#ff5d1c','#f5cc26','#a5d83d','#25b89a','#3587ed','#6147d4','#b546da','#ef68ae','#eeeeee','#222222'].map(x=>({id:x,color:x,name:x})),color=>change({color}));
     swatches($('#eye-swatches'),catalog.eyes.map((x,i)=>({...x,id:String(i)})),eye=>change({eye:Number(eye)}));sync();
     $('#species').addEventListener('change',e=>change({species:e.target.value}));$('#gender').addEventListener('change',e=>change({gender:e.target.value}));
@@ -82,7 +85,7 @@ async function init(){
     $('#hair-hex').addEventListener('input',e=>e.target.setCustomValidity(''));
     for(const tab of document.querySelectorAll('[role=tab]')){tab.addEventListener('click',()=>activateTab(tab));tab.addEventListener('keydown',e=>{const tabs=[...document.querySelectorAll('[role=tab]')];if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(tabs.indexOf(tab)+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;activateTab(tabs[i]);tabs[i].focus();});}
     $('#reset-view').addEventListener('click',resetCamera);
-    $('#reset-character').addEventListener('click',()=>{state=normalize(DEFAULTS,catalog);persist();hairChoices();$('#outfit-search').value='';outfitChoices();sync();resetCamera();rebuild();});
+    $('#reset-character').addEventListener('click',()=>{state=normalize(DEFAULTS,catalog);persist();hairChoices();browChoices();$('#outfit-search').value='';outfitChoices();sync();resetCamera();rebuild();});
     retry.addEventListener('click',rebuild);
     renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();hasError=true;updateDownload();showStatus('三维预览已暂停，正在恢复…');});
     renderer.domElement.addEventListener('webglcontextrestored',()=>rebuild());

@@ -1,6 +1,6 @@
 # Raiders character customizer
 
-The customizer combines the four source player bodies, 20 hairstyle assets and 39 complete game-defined outfits. Gender and species select the source body; 21 original iris textures and editable hair colour are embedded in the downloaded GLB. Outfit masks are fitted to each body. Closed helmets suppress hair according to the source configuration.
+The customizer combines the four source player bodies, 20 hairstyle assets, 16 eyebrow variants and 39 complete game-defined outfits. Gender and species select the source body and four compatible eyebrow styles. The 21 original iris textures and editable hair colour are embedded in the downloaded GLB. Eyebrows follow the selected hair colour. Outfit masks are fitted to each body. Closed helmets suppress hair according to the source configuration.
 
 Clothing and gloves share the character skeleton. Additional sleeve and waistcloth bones are retained; hair, eyebrows and headwear keep their bone hierarchy below the character head. Exports contain editable meshes, skins and embedded images. No server-side Blender conversion or user addon is required.
 
@@ -17,3 +17,13 @@ Clothing and gloves share the character skeleton. Additional sleeve and waistclo
 The test matrix covers each body/outfit pair and every available asset; it does not exhaust every hairstyle/outfit/colour permutation or extreme animation pose. No connected browser-control surface was available, so browser-rendered UI, touch interaction and actual browser download clicks require user acceptance testing.
 
 The source assets are content-addressed. Before updating the catalog, repeat source/material/assembly checks, export round trips and post-upload integrity verification. Keep the vendored Three.js version and its MIT license together.
+
+## Texture repair and eyebrow selection — 2026-11-14
+
+The eye and clothing checker artifacts were present in the converted images. Loading multiple conversion helpers replaced a shared BNTX deswizzler while the active importer updated a different helper's platform flag. This applied the NX block order to Ounc textures. Each texture import now scopes its decoder to the file header and restores the previous decoder in `finally`; it no longer depends on shared mutable platform state. Mixed-helper regression tests compare iris, albedo and normal images with confirmed Ounc-decoded references.
+
+All 84 iris images were regenerated and reviewed at enlarged scale. All 39 complete outfits were rebuilt, including their packed Blender files, library GLBs, posters, outfit masks and customizer assets. The 16 source eyebrow models are separate skinned accessories, attached below the head. The existing hairstyle tab now reads “头部” and includes eyebrow choices; old saved selections default to style 02. Exports preserve the chosen eyebrow mesh and style metadata.
+
+Revalidation completed with zero glTF errors for 156 body/outfit combinations covering all 16 eyebrow variants. Each exact exported file was reopened in Blender, checked for packed images and attached skins, and rendered from front/back. Arm, elbow, knee and head motion were checked; eyebrow vertices were verified to follow head movement. All 16 assembled eyebrow variants received additional close-up renders. Updated library Blender/GLB files were reopened independently during conversion.
+
+All 192 changed hosted files were downloaded and matched against SHA-256 and original byte length, with CORS verified. The upload credential was removed and ingest returned HTTP 403. Cache revisions cover the customizer modules, stylesheet and both affected catalogs. See `raiders-texture-repair-validation.json` for exact export and hosted-file hashes. Browser UI and download clicks remain untested because a connected browser-control surface was unavailable; the assembly/export checks run the production modules with Node Canvas, and visual checks use Blender.
