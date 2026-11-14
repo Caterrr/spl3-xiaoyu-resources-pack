@@ -66,7 +66,7 @@ for(const row of aboutRows){
     const keepOpen=hoverAnswers.matches&&(event.detail===0||(event.pointerType||triggerPointer)==='mouse');
     setAnswer(keepOpen||activeAnswer!==row?row:null);
   });
-  row.addEventListener('focusin',event=>{if(event.target.matches(':focus-visible'))setAnswer(row);});
+  row.addEventListener('focusin',event=>{if(hoverAnswers.matches&&event.target.matches(':focus-visible'))setAnswer(row);});
   row.addEventListener('focusout',()=>{
     setTimeout(()=>{if(activeAnswer===row&&!row.contains(document.activeElement)&&!row.matches(':hover')&&!socialDialog.open)setAnswer(null);},0);
   });
