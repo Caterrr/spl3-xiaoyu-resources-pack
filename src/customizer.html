@@ -5,7 +5,7 @@
 <meta name="description" content="搭配涂击队角色、发型与服装，实时预览并下载带骨骼和贴图的 GLB。">
 <link rel="icon" href="./assets/site-icon.ico"><link rel="stylesheet" href="./styles.css?v=0bea74d42a71">
 <link rel="stylesheet" href="./model-menu.css?v=nav-hover"><link rel="stylesheet" href="./typography.css?v=a554d1e98007">
-<link rel="stylesheet" href="./responsive.css?v=92ea0f60204c"><link rel="stylesheet" href="./customizer.css?v=dd2cf234be96">
+<link rel="stylesheet" href="./responsive.css?v=92ea0f60204c"><link rel="stylesheet" href="./customizer.css?v=e3dcd9eb3c15">
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
 </head><body class="customizer-page">
 <header class="site-header">
@@ -70,7 +70,10 @@
 <div class="stage-status" id="stage-status" role="status" aria-live="polite"><p id="stage-message">加载搭配…</p><button type="button" id="retry-character" hidden>重试</button></div>
 </section>
 <aside class="customizer-controls" aria-label="搭配选项">
-<div class="identity-fields"><label>种族<select id="species"><option value="squid">鱿鱼</option><option value="octopus">章鱼</option></select></label><label>性别<select id="gender"><option value="female">女</option><option value="male">男</option></select></label></div>
+<div class="identity-fields">
+<fieldset class="identity-field"><legend>种族</legend><div class="identity-options"><label><input type="radio" name="species" value="squid" checked><span>鱿鱼</span></label><label><input type="radio" name="species" value="octopus"><span>章鱼</span></label></div></fieldset>
+<fieldset class="identity-field"><legend>性别</legend><div class="identity-options"><label><input type="radio" name="gender" value="female" checked><span>女</span></label><label><input type="radio" name="gender" value="male"><span>男</span></label></div></fieldset>
+</div>
 <div class="editor-tabs" role="tablist" aria-label="搭配类别">
 <button type="button" role="tab" id="tab-hair" aria-controls="panel-hair" aria-selected="true">头部</button><button type="button" role="tab" id="tab-outfit" aria-controls="panel-outfit" aria-selected="false" tabindex="-1">服装</button><button type="button" role="tab" id="tab-color" aria-controls="panel-color" aria-selected="false" tabindex="-1">颜色</button>
 </div>
@@ -87,4 +90,4 @@
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="./model-menu.js?v=1fe3b101fbc9" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=04019d5bfa3d"></script></body></html>
+<script src="./model-menu.js?v=1fe3b101fbc9" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=518fb0dae433"></script></body></html>

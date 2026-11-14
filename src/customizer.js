@@ -21,7 +21,7 @@ function fitCamera(reset=false){
 function resetCamera(){fitCamera(true);}
 function selectedButtons(container,id){for(const b of container.querySelectorAll('button[data-id]'))b.setAttribute('aria-pressed',String(b.dataset.id===String(id)));}
 function sync(){
-  $('#species').value=state.species;$('#gender').value=state.gender;
+  for(const input of document.querySelectorAll('.identity-options input'))input.checked=input.value===state[input.name];
   $('#hair-color').value=state.color;$('#hair-hex').value=state.color;
   selectedButtons($('#hair-choices'),state.hair);selectedButtons($('#outfit-choices'),state.outfit);
   selectedButtons($('#brow-choices'),state.brow);
@@ -65,7 +65,7 @@ function activateTab(tab){
 }
 async function init(){
   try{
-    const response=await fetch('./catalog/raiders/customizer.json?v=4ede3dcc607e');if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
+    const response=await fetch('./catalog/raiders/customizer.json?v=afa33936a92f');if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
     let saved;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
     state=normalize(saved||DEFAULTS,catalog);
     renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.LinearToneMapping;renderer.toneMappingExposure=1;
@@ -77,7 +77,7 @@ async function init(){
     resetCamera();hairChoices();browChoices();outfitChoices();
     swatches($('#hair-swatches'),['#ff5d1c','#f5cc26','#a5d83d','#25b89a','#3587ed','#6147d4','#b546da','#ef68ae','#eeeeee','#222222'].map(x=>({id:x,color:x,name:x})),color=>change({color}));
     swatches($('#eye-swatches'),catalog.eyes.map((x,i)=>({...x,id:String(i)})),eye=>change({eye:Number(eye)}));sync();
-    $('#species').addEventListener('change',e=>change({species:e.target.value}));$('#gender').addEventListener('change',e=>change({gender:e.target.value}));
+    for(const input of document.querySelectorAll('.identity-options input'))input.addEventListener('change',()=>{if(input.checked)change({[input.name]:input.value});});
     $('#hair-color').addEventListener('input',e=>change({color:e.target.value}));
     $('#hair-hex').addEventListener('change',e=>{const v=e.target.value.trim();if(/^#[\da-f]{6}$/i.test(v)){e.target.setCustomValidity('');change({color:v});}else{e.target.setCustomValidity('请输入 # 加六位颜色值，例如 #ff5d1c');e.target.reportValidity();}});
     $('#hair-hex').addEventListener('input',e=>e.target.setCustomValidity(''));

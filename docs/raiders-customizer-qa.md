@@ -27,3 +27,11 @@ All 84 iris images were regenerated and reviewed at enlarged scale. All 39 compl
 Revalidation completed with zero glTF errors for 156 body/outfit combinations covering all 16 eyebrow variants. Each exact exported file was reopened in Blender, checked for packed images and attached skins, and rendered from front/back. Arm, elbow, knee and head motion were checked; eyebrow vertices were verified to follow head movement. All 16 assembled eyebrow variants received additional close-up renders. Updated library Blender/GLB files were reopened independently during conversion.
 
 All 192 changed hosted files were downloaded and matched against SHA-256 and original byte length, with CORS verified. The upload credential was removed and ingest returned HTTP 403. Cache revisions cover the customizer modules, stylesheet and both affected catalogs. See `raiders-texture-repair-validation.json` for exact export and hosted-file hashes. Browser UI and download clicks remain untested because a connected browser-control surface was unavailable; the assembly/export checks run the production modules with Node Canvas, and visual checks use Blender.
+
+## Eyebrow posters and control edges — 2026-11-14 follow-up
+
+The eyebrow poster renderer had omitted the source `Mouth00` face meshes and teeth, leaving the lower face incomplete. Regenerated all 16 posters with those components, a complete-head 512 × 320 frame and no CSS crop offsets. Reviewed every resulting render and downloaded all 16 new hosted images to verify byte length, SHA-256 and CORS. This changes preview images only; the assembled/exported character already includes these facial components.
+
+Species and gender now use two-option native radio groups with matching selected, hover and keyboard-focus styles. Color swatches reserve a 44px hit area; their color disc, selection ring and hover effect stay inside it. Thumbnail and color-input focus outlines also draw inward, and native color-input swatch borders are normalized. Removed outward swatch scaling and negative ring insets that were clipped by the scrolling editor. Reduced-motion settings remain respected.
+
+JavaScript syntax, HTML IDs/ARIA references, radio-group defaults, selector references and static build checked. No browser-control surface was available, so these checks do not constitute browser interaction testing.

@@ -8,3 +8,4 @@ These scripts record the conversion and regression logic used for the 2026-11-14
 - `decoder-regression.py`: mixed-helper isolation and known-good eye/albedo/normal decode comparisons.
 - `customizer-runtime-test.mjs`: exercise production assembly/export, validate skin attachment and eyebrow/head motion, and run Khronos validation.
 - `customizer-state-test.mjs`: state normalization, 16 eyebrow variants, integrity errors and retries.
+- `render_brow_posters.py`: complete-head eyebrow previews including the neutral mouth and teeth; output framing matches the UI without crop offsets.
