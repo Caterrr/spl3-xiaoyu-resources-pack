@@ -1,0 +1,34 @@
+{
+  "game": "spl3",
+  "bottomStyles": 9,
+  "bottomModels": 18,
+  "assemblyChecks": 44,
+  "blenderRoundtrips": 26,
+  "correctedHair": [
+    {
+      "key": "Har_SQD012_F",
+      "oldSha256": "5578da34d2096d59ff1494f287fee5e5c04499dcce052078addfd82fe818b6bb",
+      "sha256": "0ee9d36bf35b754bce25b512494ffc1ba4bd7e8fd8df9c46972418eaacac9ef5",
+      "posterSha256": "6425034c495653a0bfd3973fa64927ed311d80656cd56735b1298f002c1182dc",
+      "accessorsByteIdentical": true,
+      "nodeTransformsIdentical": true,
+      "skinsIdentical": true
+    },
+    {
+      "key": "Har_SQD012_M",
+      "oldSha256": "65063c71fb246d88a83db9c4791e55eca7c10b98a69a64d0e7b1fee911470592",
+      "sha256": "357e489e415b0461fa1a649675062d049d8009344de0542f89424633a8b958b9",
+      "posterSha256": "73ee7ec558ead985fbb3df5b1c30306b969ec5d34d256f0487ed5a7e69c714ff",
+      "accessorsByteIdentical": true,
+      "nodeTransformsIdentical": true,
+      "skinsIdentical": true
+    }
+  ],
+  "hairRoundtrips": 2,
+  "assetValidation": 1030,
+  "publicAssetDownloads": 36,
+  "notIncluded": [
+    "Leggings texture presets beyond the verified base style",
+    "Story-only legwear"
+  ]
+}

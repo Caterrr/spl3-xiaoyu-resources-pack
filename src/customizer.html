@@ -86,7 +86,16 @@
 <button type="button" role="tab" id="tab-hair" aria-controls="panel-hair" aria-selected="true">头部</button><button type="button" role="tab" id="tab-outfit" aria-controls="panel-outfit" aria-selected="false" tabindex="-1">服装</button><button type="button" role="tab" id="tab-color" aria-controls="panel-color" aria-selected="false" tabindex="-1">颜色</button>
 </div>
 <div id="panel-hair" class="editor-panel" role="tabpanel" aria-labelledby="tab-hair"><p class="choice-notice" id="hair-notice" hidden>这套服装的头盔会遮住发型；换下后恢复所选发型。</p><fieldset class="head-field"><legend>眉毛</legend><div class="choices brow-choices" id="brow-choices"></div></fieldset><fieldset class="head-field"><legend>发型</legend><div class="choices" id="hair-choices"></div></fieldset></div>
-<div id="panel-outfit" class="editor-panel" role="tabpanel" aria-labelledby="tab-outfit" hidden><div class="wear-categories" id="wear-categories" role="group" aria-label="服装分类" hidden><button type="button" data-kind="headgear" aria-pressed="false">发饰</button><button type="button" data-kind="clothes" aria-pressed="true">衣服</button><button type="button" data-kind="shoes" aria-pressed="false">鞋子</button></div><p class="choice-notice" id="wear-notice" hidden>这套衣服自带鞋子；换下后恢复所选鞋子。</p><div class="choices" id="outfit-choices"></div></div>
+<div id="panel-outfit" class="editor-panel" role="tabpanel" aria-labelledby="tab-outfit" hidden>
+  <div class="wear-categories" id="wear-categories" role="group" aria-label="服装分类" hidden>
+    <button type="button" data-kind="headgear" aria-pressed="false">发饰</button>
+    <button type="button" data-kind="clothes" aria-pressed="true">衣服</button>
+    <button type="button" data-kind="bottoms" aria-pressed="false">裤子</button>
+    <button type="button" data-kind="shoes" aria-pressed="false">鞋子</button>
+  </div>
+  <p class="choice-notice" id="wear-notice" hidden></p>
+  <div class="choices" id="outfit-choices"></div>
+</div>
 <div id="panel-color" class="editor-panel" role="tabpanel" aria-labelledby="tab-color" hidden>
 <fieldset class="color-field"><legend>头发颜色</legend><div class="swatches" id="hair-swatches" role="group" aria-label="头发预设颜色"></div><div class="color-inputs"><input id="hair-color" type="color" value="#ff5d1c" aria-label="选择头发颜色"><input id="hair-hex" type="text" value="#ff5d1c" maxlength="7" spellcheck="false" aria-label="头发十六进制颜色值"></div></fieldset>
 <fieldset class="color-field"><legend>眼睛颜色</legend><div class="swatches" id="eye-swatches" role="group" aria-label="选择眼睛颜色"></div></fieldset>
@@ -98,4 +107,4 @@
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="./model-menu.js?v=5fd87dd8ce87" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=95c5236d0723"></script></body></html>
+<script src="./model-menu.js?v=5fd87dd8ce87" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=2e94fb86732c"></script></body></html>

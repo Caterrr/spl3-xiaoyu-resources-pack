@@ -4,7 +4,7 @@ import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
 import {loadAsset,joinAsset,prepareTints,dispose,tint,setEye} from './customizer-core.js?v=69cc12eec1d2';
 export {dispose,tint,setEye};
 
-export const DEFAULTS=Object.freeze({species:'squid',gender:'female',hair:'spl3:Har_SQD001',brow:1,outfit:'spl3:Clt_TES000',headgear:'spl3:none:headgear',shoes:'spl3:Shs_SDL000',eye:0,color:'#ff5d1c'});
+export const DEFAULTS=Object.freeze({species:'squid',gender:'female',hair:'spl3:Har_SQD001',brow:1,outfit:'spl3:Clt_TES000',bottom:'spl3:Btm_000',headgear:'spl3:none:headgear',shoes:'spl3:Shs_SDL000',eye:0,color:'#ff5d1c'});
 export function avatarId(s){return 'spl3:Player0'+(Number(s.species==='octopus')*2+Number(s.gender==='male'));}
 export function browId(s){return `spl3:Eyb_${s.species==='octopus'?'OCT':'SQD'}00${s.brow}_${s.gender==='male'?'M':'F'}`;}
 export function supports(entry,gender){return !!entry&&(entry.empty||!!entry.variants?.[gender]);}
@@ -18,7 +18,7 @@ export function normalize(input,catalog){
   const hair=catalog.hair.filter(e=>e.species===s.species&&supports(e,s.gender));
   if(!hair.length)throw Error('发型资源不完整');
   if(!hair.some(e=>e.id===s.hair))s.hair=(hair.find(e=>e.id===DEFAULTS.hair)||hair[0]).id;
-  for(const [key,entries] of [['outfit',catalog.clothes],['shoes',catalog.shoes],['headgear',catalog.headgear]]){
+  for(const [key,entries] of [['outfit',catalog.clothes],['bottom',catalog.bottoms],['shoes',catalog.shoes],['headgear',catalog.headgear]]){
     const valid=entries.filter(e=>supports(e,s.gender));
     if(!valid.length)throw Error('服装资源不完整');
     if(!valid.some(e=>e.id===s[key]))s[key]=(valid.find(e=>e.id===DEFAULTS[key])||valid[0]).id;
@@ -27,7 +27,7 @@ export function normalize(input,catalog){
   s.eye=Number.isInteger(Number(s.eye))?Math.max(0,Math.min(catalog.eyes.length-1,Number(s.eye))):0;
   s.brow=Number.isInteger(Number(s.brow))&&Number(s.brow)>=0&&Number(s.brow)<=3?Number(s.brow):DEFAULTS.brow;
   if(!/^#[\da-f]{6}$/i.test(s.color))s.color=DEFAULTS.color;
-  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,headgear:s.headgear,shoes:s.shoes,eye:s.eye,color:s.color.toLowerCase()};
+  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,bottom:s.bottom,headgear:s.headgear,shoes:s.shoes,eye:s.eye,color:s.color.toLowerCase()};
 }
 export function wearFlags(catalog,s){return catalog.clothes.find(e=>e.id===s.outfit)?.variants?.[s.gender]?.flags||{};}
 function rigOf(scene){let found;scene.traverse(o=>{if(o.userData.canonicalRig)found=o;});if(!found)throw Error('角色骨骼缺失');return found;}
@@ -51,9 +51,9 @@ export async function assemble(catalog,input){
   const state=normalize(input,catalog),flags=wearFlags(catalog,state);
   const outfit=catalog.clothes.find(e=>e.id===state.outfit),headgear=catalog.headgear.find(e=>e.id===state.headgear),shoe=catalog.shoes.find(e=>e.id===state.shoes);
   const headRule=headgearRule(headgear,state);
-  const bottom=catalog.bottoms.find(e=>e.gender===state.gender);
+  const bottom=catalog.bottoms.find(e=>e.id===state.bottom);
   const entries={body:catalog.avatars.find(e=>e.id===avatarId(state)),wear:variant(outfit,state),brow:catalog.brows.find(e=>e.id===browId(state))};
-  if(!flags.hidePants)entries.bottom=bottom;
+  if(!flags.hidePants)entries.bottom=variant(bottom,state);
   if(!flags.integratedShoes&&!shoe.empty)entries.shoes=variant(shoe,state);
   if(!headgear.empty)entries.headgear=variant(headgear,state);
   if(!headRule.hideHair)entries.hair=variant(catalog.hair.find(e=>e.id===state.hair),state);
@@ -69,7 +69,7 @@ export async function assemble(catalog,input){
     for(const [key,asset] of Object.entries(assets))if(key!=='body')joinAsset(character,asset.scene,rig);
     const maskFor=entry=>{const key=entry?.maskTexture;if(!key)return null;if(!catalog.masks[key])throw Error('服装遮罩缺失');return catalog.masks[key];};
     const masks=[maskFor(entries.wear)];
-    if(entries.bottom)masks.push(catalog.masks[bottom.maskTexture]);
+    if(entries.bottom)masks.push(maskFor(entries.bottom));
     if(entries.shoes)masks.push(maskFor(entries.shoes));
     await maskBody(roles.body,masks);
     const eyeImages=await Promise.all(assets.body.scene.userData.eyes.map(image));

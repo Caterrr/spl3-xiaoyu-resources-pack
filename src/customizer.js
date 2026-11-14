@@ -2,14 +2,14 @@ import * as THREE from './vendor/three/build/three.module.min.js';
 import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.js';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=e65bc623e1da',core:'./customizer-spl3-core.js?v=28024c0e813a'}};
+const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=29b27084bf03',core:'./customizer-spl3-core.js?v=2bd26de32183'}};
 let DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearFits,headgearRule,wearFlags;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
 const storageKey=gameKey+'-character-v1';
 let wearKind='clothes';
-const wearKey=()=>wearKind==='clothes'?'outfit':wearKind;
+const wearKey=()=>({clothes:'outfit',bottoms:'bottom'})[wearKind]||wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
 function updateDownload(){download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
@@ -34,9 +34,12 @@ function sync(){
   const hidesHair=gameKey==='spl3'?headgearRule(catalog.headgear.find(x=>x.id===state.headgear),state).hideHair:catalog.outfits.find(x=>x.id===state.outfit)?.hideHair;
   $('#hair-notice').hidden=!hidesHair;
   if(gameKey==='spl3'){
-    const integrated=!!wearFlags(catalog,state).integratedShoes;
-    $('#wear-notice').hidden=wearKind!=='shoes'||!integrated;
-    for(const button of $('#outfit-choices').querySelectorAll('button'))button.disabled=wearKind==='shoes'&&integrated;
+    const flags=wearFlags(catalog,state);
+    const notice=wearKind==='shoes'&&flags.integratedShoes?'这套衣服自带鞋子，换下后恢复所选鞋子。'
+      :wearKind==='bottoms'&&flags.hidePants?'这套衣服自带下装，换下后恢复所选裤子。':'';
+    $('#wear-notice').textContent=notice;
+    $('#wear-notice').hidden=!notice;
+    for(const button of $('#outfit-choices').querySelectorAll('button'))button.disabled=!!notice;
   }
 }
 function choices(target,entries,onSelect){
@@ -70,7 +73,7 @@ function change(patch){
   if(previous.species!==state.species||gameKey==='spl3'&&previous.gender!==state.gender)hairChoices();
   if(gameKey==='spl3'&&['species','gender','hair'].some(k=>state[k]!==previous[k]))outfitChoices();
   if(previous.species!==state.species||previous.gender!==state.gender)browChoices();sync();
-  if(['species','gender','hair','brow','outfit','headgear','shoes'].some(k=>state[k]!==previous[k])){rebuild();return;}
+  if(['species','gender','hair','brow','outfit','bottom','headgear','shoes'].some(k=>state[k]!==previous[k])){rebuild();return;}
   if(model&&!loading&&!hasError){if(previous.color!==state.color)tint(model.tints,state.color);if(previous.eye!==state.eye)setEye(model,state.eye);model.state={...state};render();}
 }
 function activateTab(tab){
