@@ -5,7 +5,7 @@
 <meta name="description" content="搭配涂击队角色、发型与服装，实时预览并下载带骨骼和贴图的 GLB。">
 <link rel="icon" href="./assets/site-icon.ico"><link rel="stylesheet" href="./styles.css?v=0bea74d42a71">
 <link rel="stylesheet" href="./model-menu.css?v=nav-hover"><link rel="stylesheet" href="./typography.css?v=a554d1e98007">
-<link rel="stylesheet" href="./responsive.css?v=92ea0f60204c"><link rel="stylesheet" href="./customizer.css?v=65789e751246">
+<link rel="stylesheet" href="./responsive.css?v=92ea0f60204c"><link rel="stylesheet" href="./customizer.css?v=1d95b2861f3e">
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
 </head><body class="customizer-page">
 <header class="site-header">
@@ -68,24 +68,23 @@
 <section class="character-stage" id="character-stage" aria-label="角色预览">
 <div class="stage-tools"><button type="button" id="reset-view">重置视角</button><button type="button" id="reset-character">重置搭配</button></div>
 <div class="stage-status" id="stage-status" role="status" aria-live="polite"><p id="stage-message">加载搭配…</p><button type="button" id="retry-character" hidden>重试</button></div>
-<p class="stage-hint">拖动旋转 · 滚轮 / 双指缩放</p>
 </section>
 <aside class="customizer-controls" aria-label="搭配选项">
-<div class="identity-fields"><label>种族<select id="species"><option value="squid">墨灵</option><option value="octopus">章鱼</option></select></label><label>性别<select id="gender"><option value="female">女</option><option value="male">男</option></select></label></div>
+<div class="identity-fields"><label>种族<select id="species"><option value="squid">鱿鱼</option><option value="octopus">章鱼</option></select></label><label>性别<select id="gender"><option value="female">女</option><option value="male">男</option></select></label></div>
 <div class="editor-tabs" role="tablist" aria-label="搭配类别">
 <button type="button" role="tab" id="tab-hair" aria-controls="panel-hair" aria-selected="true">头部</button><button type="button" role="tab" id="tab-outfit" aria-controls="panel-outfit" aria-selected="false" tabindex="-1">服装</button><button type="button" role="tab" id="tab-color" aria-controls="panel-color" aria-selected="false" tabindex="-1">颜色</button>
 </div>
 <div id="panel-hair" class="editor-panel" role="tabpanel" aria-labelledby="tab-hair"><p class="choice-notice" id="hair-notice" hidden>这套服装的头盔会遮住发型；换下后恢复所选发型。</p><fieldset class="head-field"><legend>眉毛</legend><div class="choices brow-choices" id="brow-choices"></div></fieldset><fieldset class="head-field"><legend>发型</legend><div class="choices" id="hair-choices"></div></fieldset></div>
-<div id="panel-outfit" class="editor-panel" role="tabpanel" aria-labelledby="tab-outfit" hidden><input id="outfit-search" class="outfit-search" type="search" placeholder="搜索服装" aria-label="搜索服装"><div class="choices" id="outfit-choices"></div><p id="outfit-empty" class="choice-notice" hidden>没有匹配的服装</p></div>
+<div id="panel-outfit" class="editor-panel" role="tabpanel" aria-labelledby="tab-outfit" hidden><div class="choices" id="outfit-choices"></div></div>
 <div id="panel-color" class="editor-panel" role="tabpanel" aria-labelledby="tab-color" hidden>
 <fieldset class="color-field"><legend>头发颜色</legend><div class="swatches" id="hair-swatches" role="group" aria-label="头发预设颜色"></div><div class="color-inputs"><input id="hair-color" type="color" value="#ff5d1c" aria-label="选择头发颜色"><input id="hair-hex" type="text" value="#ff5d1c" maxlength="7" spellcheck="false" aria-label="头发十六进制颜色值"></div></fieldset>
 <fieldset class="color-field"><legend>眼睛颜色</legend><div class="swatches" id="eye-swatches" role="group" aria-label="选择眼睛颜色"></div></fieldset>
 </div>
-<div class="editor-actions"><button type="button" id="download-character" class="download-character" disabled><span>下载搭配 · GLB</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></button><p class="import-hint">Blender：文件 → 导入 → glTF 2.0</p><p id="download-status" class="download-status" role="status" aria-live="polite"></p></div>
+<div class="editor-actions"><button type="button" id="download-character" class="download-character" disabled><span>下载搭配 · GLB</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></button><p id="download-status" class="download-status" role="status" aria-live="polite"></p></div>
 </aside></div></main>
 <dialog id="social-dialog" aria-labelledby="social-title">
 <div class="social-dialog-heading"><h2 id="social-title"></h2><button id="social-close" type="button" aria-label="关闭二维码窗口" autofocus>×</button></div>
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="./model-menu.js?v=1fe3b101fbc9" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=7a7ae2250868"></script></body></html>
+<script src="./model-menu.js?v=1fe3b101fbc9" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=04019d5bfa3d"></script></body></html>

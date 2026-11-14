@@ -30,15 +30,14 @@ function sync(){
 }
 function choices(target,entries,onSelect){
   target.replaceChildren(...entries.map(entry=>{
-    const button=document.createElement('button');button.type='button';button.className='choice-button';button.dataset.id=entry.id;button.setAttribute('aria-pressed', 'false');
+    const button=document.createElement('button');button.type='button';button.className='choice-button';button.dataset.id=entry.id;button.setAttribute('aria-pressed', 'false');button.setAttribute('aria-label',entry.name);
     const img=document.createElement('img');img.src=entry.poster;img.alt='';img.loading='lazy';img.width=128;img.height=128;
-    const label=document.createElement('span');label.textContent=entry.name;
-    button.append(img,label);button.addEventListener('click',()=>onSelect(entry.id));return button;
+    button.append(img);button.addEventListener('click',()=>onSelect(entry.id));return button;
   }));
 }
 function hairChoices(){choices($('#hair-choices'),catalog.hair.filter(x=>x.species===state.species),id=>change({hair:id}));}
 function browChoices(){choices($('#brow-choices'),catalog.brows.filter(x=>x.species===state.species&&x.gender===state.gender).map(x=>({...x,id:String(x.style)})),id=>change({brow:Number(id)}));}
-function outfitChoices(){const query=$('#outfit-search').value.trim().toLowerCase();const entries=catalog.outfits.filter(x=>x.name.toLowerCase().includes(query));choices($('#outfit-choices'),entries,id=>change({outfit:id}));$('#outfit-empty').hidden=entries.length>0;selectedButtons($('#outfit-choices'),state.outfit);}
+function outfitChoices(){choices($('#outfit-choices'),catalog.outfits,id=>change({outfit:id}));selectedButtons($('#outfit-choices'),state.outfit);}
 function swatches(target,entries,onSelect){
   target.replaceChildren(...entries.map(e=>{const b=document.createElement('button');b.type='button';b.className='swatch';b.style.setProperty('--swatch',e.color);b.dataset.id=e.id;b.title=e.name;b.setAttribute('aria-label',e.name);b.setAttribute('aria-pressed','false');b.addEventListener('click',()=>onSelect(e.id));return b;}));
 }
@@ -79,13 +78,12 @@ async function init(){
     swatches($('#hair-swatches'),['#ff5d1c','#f5cc26','#a5d83d','#25b89a','#3587ed','#6147d4','#b546da','#ef68ae','#eeeeee','#222222'].map(x=>({id:x,color:x,name:x})),color=>change({color}));
     swatches($('#eye-swatches'),catalog.eyes.map((x,i)=>({...x,id:String(i)})),eye=>change({eye:Number(eye)}));sync();
     $('#species').addEventListener('change',e=>change({species:e.target.value}));$('#gender').addEventListener('change',e=>change({gender:e.target.value}));
-    $('#outfit-search').addEventListener('input',outfitChoices);
     $('#hair-color').addEventListener('input',e=>change({color:e.target.value}));
     $('#hair-hex').addEventListener('change',e=>{const v=e.target.value.trim();if(/^#[\da-f]{6}$/i.test(v)){e.target.setCustomValidity('');change({color:v});}else{e.target.setCustomValidity('请输入 # 加六位颜色值，例如 #ff5d1c');e.target.reportValidity();}});
     $('#hair-hex').addEventListener('input',e=>e.target.setCustomValidity(''));
     for(const tab of document.querySelectorAll('[role=tab]')){tab.addEventListener('click',()=>activateTab(tab));tab.addEventListener('keydown',e=>{const tabs=[...document.querySelectorAll('[role=tab]')];if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(tabs.indexOf(tab)+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;activateTab(tabs[i]);tabs[i].focus();});}
     $('#reset-view').addEventListener('click',resetCamera);
-    $('#reset-character').addEventListener('click',()=>{state=normalize(DEFAULTS,catalog);persist();hairChoices();browChoices();$('#outfit-search').value='';outfitChoices();sync();resetCamera();rebuild();});
+    $('#reset-character').addEventListener('click',()=>{state=normalize(DEFAULTS,catalog);persist();hairChoices();browChoices();outfitChoices();sync();resetCamera();rebuild();});
     retry.addEventListener('click',rebuild);
     renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();hasError=true;updateDownload();showStatus('三维预览已暂停，正在恢复…');});
     renderer.domElement.addEventListener('webglcontextrestored',()=>rebuild());
@@ -95,7 +93,7 @@ async function init(){
       try{
         const bytes=await exportCharacter(selected),blob=new Blob([bytes],{type:'model/gltf-binary'}),url=URL.createObjectURL(blob),a=document.createElement('a');
         const title=catalog.outfits.find(x=>x.id===selection.outfit).name;
-        a.href=url;a.download=`涂击队-${selection.species==='squid'?'墨灵':'章鱼'}-${selection.gender==='female'?'女':'男'}-${title}.glb`;a.style.display='none';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+        a.href=url;a.download=`涂击队-${selection.species==='squid'?'鱿鱼':'章鱼'}-${selection.gender==='female'?'女':'男'}-${title}.glb`;a.style.display='none';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
         downloadStatus.textContent=`已生成 GLB · ${(bytes.byteLength/1024/1024).toFixed(1)} MB`;
       }catch(e){downloadStatus.textContent='下载未完成，请重新点击下载。';console.error(e);}
       finally{exporting=false;updateDownload();}
