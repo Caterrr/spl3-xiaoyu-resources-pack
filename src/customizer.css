@@ -78,10 +78,14 @@
 .pose-filters input,.pose-filters select{min-width:0;height:36px;color:#eee;background:#202020;color-scheme:dark;border:1px solid #555;padding:0 8px;font:inherit;font-size:13px}
 .pose-filters input{flex:1}.pose-filters select{max-width:48%}
 .pose-list{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#555 transparent;padding:4px 8px 8px}
-.pose-group,.pose-list p{margin:0;padding:12px 8px 4px;color:#aaa;font-size:12px}
+.pose-list p{margin:0;padding:12px 8px 4px;color:#aaa;font-size:12px}
 .pose-list button{width:100%;min-height:36px;padding:7px 9px;text-align:left;background:transparent;border:0;border-left:2px solid transparent;color:#ccc;cursor:pointer;font:inherit;transition:color 240ms var(--ease),background-color 240ms var(--ease),padding-left 360ms var(--ease)}
 .pose-list button[aria-pressed=true]{color:#fff;background:#30231d;border-left-color:var(--accent)}
 .preview-pose :focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 @media(hover:hover){.pose-trigger:hover{border-color:#888;background:#292929}.pose-list button:hover{color:#fff;background:#292929;padding-left:13px}}
 @media(prefers-reduced-motion:reduce){.pose-panel,.pose-caret,.pose-trigger,.pose-list button{transition:none}}
 @media(max-width:390px){#download-blend{padding-inline:4px;font-size:13px}}
+
+.pose-list button[data-family]::after{content:"›";float:right;color:#999}
+.pose-list button[data-back],.pose-list button[data-more]{color:var(--accent)}
+.pose-filters select[hidden]{display:none}

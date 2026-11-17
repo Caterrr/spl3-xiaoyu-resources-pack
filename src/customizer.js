@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three/build/three.module.min.js';
 import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.js';
-import {setupPoseMenu} from './customizer-pose-menu.js?v=bc426ee8fe8a';
+import {setupPoseMenu} from './customizer-pose-menu.js?v=48df6872dd7d';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
 const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=29b27084bf03',core:'./customizer-spl3-core.js?v=63694685487f'}};

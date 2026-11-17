@@ -1,42 +1,112 @@
+const favorites=[
+  ['rest','初始姿势'],['stand','自然站立'],['crouch','蹲姿'],['Emote_WaveHands_EdWait','挥手'],
+  ['Emote_BlowKiss','飞吻'],['Emote_SittingCrossedLegs_EdWait','盘腿坐'],['Wait_Plaza_LeanWall00','倚墙'],
+  ['win15','斜举手'],['warm','取暖'],['win13','胜利姿势 13']
+];
+const pageSize=8;
+function familyOf(pose){
+  const {clip='',label,group}=pose;
+  const key=clip.replace(/^amiibo_Pose_|^amiiboPose_|^Emote_/,'');
+  const phase=/_FistBump_L$/.test(clip)?'左碰拳':/_FistBump_R$/.test(clip)?'右碰拳':
+    /_StWait$/.test(clip)?'起始':label.endsWith(' · 动作中')?'动作中段':'收势';
+  let name=label.replace(/（变体）$/,'').replace(/ · (?:左碰拳|右碰拳|动作中|起始)$/,'');
+  let section=group,variant=label;
+  if(key.startsWith('Win')||/^amiibo_Pose_|^Emote_/.test(clip)){
+    const weapon=/^Win_(?!Pair|Tricol|X00)/.test(key);
+    section=weapon?'武器动作':key.startsWith('Win')?'胜利动作':'拍照与表情';
+    const number=weapon?name.match(/ (\d+)$/)?.[1]:'';
+    if(number)name=name.slice(0,-number.length-1);
+    variant=(number?'姿态 '+number+' · ':'')+phase;
+  }else if(clip.startsWith('amiibo')){
+    section='拍照与表情';
+    const match=name.match(/^(站姿|坐姿) (交谈|对战)/);
+    if(match)name=match[1]+match[2];
+    else name=name.replace(/ (?:起始 )?[BT]$/,'');
+  }else if(group==='宣传造型'){
+    name=name.split(' · ')[0];
+  }else if(group==='试穿与造型'){
+    name=name.split(' · ')[0];
+  }else{
+    name=name.replace(/(?: 待机变化| 起始)$/,'').replace(/ (?:\d+[A-Z]?|[A-Z])$/,'');
+  }
+  return {section,name,variant,key:section+'/'+name};
+}
 export function setupPoseMenu(field,poses,onChoose){
   const trigger=field.querySelector('.pose-trigger'),panel=field.querySelector('.pose-panel');
   const current=trigger.querySelector('.pose-current'),list=panel.querySelector('.pose-list');
   const search=panel.querySelector('input'),category=panel.querySelector('select');
-  const options=[{id:'rest',label:'初始姿势',group:'',clip:''},...poses];
-  const groups=[...new Set(poses.map(p=>p.group))];
-  for(const group of groups)category.add(new Option(group,group));
-  let selected='rest',open=false;
-  function showList(){
-    const query=search.value.trim().toLowerCase();
-    const fragment=document.createDocumentFragment();
-    let lastGroup=null;
-    for(const p of options){
-      if(category.value&&p.group!==category.value)continue;
-      if(query && !(p.label+' '+p.group+' '+p.clip).toLowerCase().includes(query))continue;
-      if(p.group && lastGroup!==p.group){
-        const heading=document.createElement('div');heading.className='pose-group';heading.textContent=p.group;fragment.append(heading);
-      }
-      lastGroup=p.group;
-      const b=document.createElement('button');b.type='button';b.dataset.pose=p.id;
-      b.setAttribute('aria-pressed',String(p.id===selected));b.textContent=p.label;fragment.append(b);
-    }
-    if(!fragment.childElementCount){
-      const empty=document.createElement('p');empty.textContent='没有匹配的姿势';fragment.append(empty);
-    }
-    list.replaceChildren(fragment);list.scrollTop=0;
+  const rest={id:'rest',label:'初始姿势',clip:'',group:''};
+  const records=new Map([rest,...poses].map(p=>[p.id,p]));
+  const common=favorites.filter(([id])=>records.has(id)).slice(0,pageSize);
+  const sections=new Set(),families=new Map();
+  for(const p of poses){
+    const f=familyOf(p);
+    sections.add(f.section);
+    if(!families.has(f.key))families.set(f.key,{...f,rows:[]});
+    families.get(f.key).rows.push({p,variant:f.variant});
   }
+  for(const family of families.values()){
+    const counts=new Map();
+    for(const row of family.rows)counts.set(row.variant,(counts.get(row.variant)||0)+1);
+    for(const row of family.rows){
+      if(counts.get(row.variant)>1)row.variant+=' · '+(row.p.clip.startsWith('amiibo')?'amiibo':'对战');
+      if(row.p.label.endsWith('（变体）'))row.variant+='（变体）';
+    }
+  }
+  category.replaceChildren(new Option('常用姿势',''));
+  for(const section of sections)category.add(new Option(section,section));
+  category.hidden=poses.length<pageSize;
+  let selected='rest',open=false,detail=null,limit=pageSize;
+  function button(label,data,active){
+    const b=document.createElement('button');b.type='button';b.textContent=label;
+    Object.assign(b.dataset,data);
+    if(active!==undefined)b.setAttribute('aria-pressed',String(active));
+    return b;
+  }
+  function matches(row,query,f){
+    return (row.p.label+' '+row.p.clip+' '+row.variant+' '+f.name+' '+f.section).toLowerCase().includes(query);
+  }
+  function draw(resetScroll=true){
+    const q=search.value.trim().toLowerCase();
+    const fragment=document.createDocumentFragment(),rows=[];
+    if(detail){
+      const f=families.get(detail);
+      fragment.append(button('‹ '+f.name,{back:'1'}));
+      for(const row of f.rows){
+        if(!q||matches(row,q,f))rows.push(button(row.variant,{pose:row.p.id},selected===row.p.id));
+      }
+    }else if(!q&&!category.value){
+      for(const [id,label] of common)rows.push(button(label,{pose:id},selected===id));
+    }else{
+      for(const f of families.values()){
+        if(category.value && f.section!==category.value)continue;
+        const found=q?f.rows.filter(row=>matches(row,q,f)):f.rows;
+        if(!found.length)continue;
+        if(found.length===1)rows.push(button(q?found[0].p.label:f.name,{pose:found[0].p.id},selected===found[0].p.id));
+        else rows.push(button(f.name,{family:f.key}));
+      }
+    }
+    fragment.append(...rows.slice(0,limit));
+    if(rows.length>limit)fragment.append(button('显示更多',{more:'1'}));
+    if(!rows.length){const empty=document.createElement('p');empty.textContent='没有匹配的姿势';fragment.append(empty);}
+    const previousScroll=list.scrollTop;
+    list.replaceChildren(fragment);list.scrollTop=resetScroll?0:previousScroll;
+  }
+  function overview(){detail=null;limit=pageSize;draw();}
   function toggle(next,focusTrigger=false){
     open=next;trigger.setAttribute('aria-expanded',String(next));panel.inert=!next;
-    if(next){showList();const active=list.querySelector('[aria-pressed=true]');if(active)list.scrollTop=Math.max(0,active.offsetTop-list.offsetTop-40);search.focus({preventScroll:true});}
+    if(next){search.value='';category.value='';overview();search.focus({preventScroll:true});}
     else if(focusTrigger)trigger.focus({preventScroll:true});
   }
   function select(id){
-    const pose=options.find(p=>p.id===id);
-    selected=id;current.textContent=pose.label;trigger.title=pose.label;
+    const p=records.get(id);
+    selected=id;current.textContent=common.find(([key])=>key===id)?.[1]||p.label;trigger.title=current.textContent;
   }
   trigger.addEventListener('click',()=>toggle(!open));
   field.addEventListener('keydown',e=>{
-    if(e.key==='Escape'&&open){e.preventDefault();toggle(false,true);return;}
+    if(e.key==='Escape'&&open){
+      e.preventDefault();if(detail){overview();search.focus();}else toggle(false,true);return;
+    }
     if(!open||e.target===category||!['ArrowUp','ArrowDown'].includes(e.key))return;
     const buttons=[...list.querySelectorAll('button')];if(!buttons.length)return;
     const i=buttons.indexOf(document.activeElement);
@@ -44,12 +114,15 @@ export function setupPoseMenu(field,poses,onChoose){
   });
   field.addEventListener('focusout',e=>{if(open&&e.relatedTarget&&!field.contains(e.relatedTarget))toggle(false);});
   document.addEventListener('pointerdown',e=>{if(open&&!field.contains(e.target))toggle(false);});
-  search.addEventListener('input',showList);
-  category.addEventListener('change',showList);
+  search.addEventListener('input',()=>{if(search.value)category.value='';overview();});
+  category.addEventListener('change',()=>{search.value='';overview();});
   list.addEventListener('click',e=>{
-    const b=e.target.closest('button[data-pose]');if(!b)return;
+    const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.more){const previous=limit;limit+=pageSize;draw(false);list.querySelectorAll('button')[previous+(detail?1:0)]?.focus();return;}
+    if(b.dataset.back){const old=detail;overview();[...list.querySelectorAll('[data-family]')].find(x=>x.dataset.family===old)?.focus();return;}
+    if(b.dataset.family){detail=b.dataset.family;limit=pageSize;draw();list.querySelector('[data-back]').focus();return;}
     toggle(false,true);onChoose(b.dataset.pose);
   });
   field.hidden=false;
-  return {select,reset(){search.value='';category.value='';select('rest');toggle(false);}};
+  return {select,reset(){select('rest');toggle(false);}};
 }
