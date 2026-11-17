@@ -2,17 +2,19 @@ import * as THREE from './vendor/three/build/three.module.min.js';
 import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.js';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=29b27084bf03',core:'./customizer-spl3-core.js?v=aba734042f97'}};
+const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=29b27084bf03',core:'./customizer-spl3-core.js?v=cdaf059d4e50'}};
 let DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearHair,wearFlags;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
 const storageKey=gameKey+'-character-v1';
+let previewPose='rest',setPreviewPose;
+const poseChoice=$('#pose-choice');
 let wearKind='clothes';
 const wearKey=()=>({clothes:'outfit',bottoms:'bottom'})[wearKind]||wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
 const downloadBlend=$('#download-blend');
-function updateDownload(){downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
+function updateDownload(){poseChoice.disabled=exporting;downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
 function render(){if(renderer&&scene&&camera)renderer.render(scene,camera);}
 function fitCamera(reset=false){
@@ -21,7 +23,19 @@ function fitCamera(reset=false){
   const center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
   const direction=reset?new THREE.Vector3(.12,.08,1).normalize():camera.position.clone().sub(controls.target).normalize();
   const angle=Math.tan(THREE.MathUtils.degToRad(camera.fov)/2);
-  const distance=Math.max(size.y/(2*angle),Math.max(size.x,size.z)/(2*angle*Math.max(.1,camera.aspect)))*1.16;
+  let distance=Math.max(size.y/(2*angle),Math.max(size.x,size.z)/(2*angle*Math.max(.1,camera.aspect)))*1.16;
+  if(model && previewPose!=='rest'){
+    // Viewed at an angle, a hand or shoe may be much closer to the lens than the body's center.
+    const right=new THREE.Vector3().crossVectors(camera.up,direction).normalize();
+    const up=new THREE.Vector3().crossVectors(direction,right);
+    const corner=new THREE.Vector3();
+    distance=0;
+    for(const x of [box.min.x,box.max.x])for(const y of [box.min.y,box.max.y])for(const z of [box.min.z,box.max.z]){
+      corner.set(x,y,z).sub(center);
+      const halfHeight=Math.max(Math.abs(corner.dot(up)),Math.abs(corner.dot(right))/camera.aspect);
+      distance=Math.max(distance,corner.dot(direction)+1.12*halfHeight/angle);
+    }
+  }
   controls.target.copy(center);camera.position.copy(center).addScaledVector(direction,distance);controls.maxDistance=Math.max(7,distance*2);controls.update();render();
 }
 function resetCamera(){fitCamera(true);}
@@ -82,6 +96,7 @@ async function rebuild(){
     if(ticket!==requestId){dispose(next.character);return;}
     // Colour changes during a model load apply to the newest selected values.
     tint(next.tints,state.color);setEye(next,state.eye);next.state={...state};
+    if(setPreviewPose && previewPose!=='rest')setPreviewPose(next,previewPose);
     const previous=model;model=next;scene.add(model.character);if(previous){scene.remove(previous.character);dispose(previous.character);}
     showStatus('');loading=false;hasError=false;updateDownload();fitCamera(!previous);render();
   }catch(e){if(ticket!==requestId)return;loading=false;hasError=true;showStatus(e.message||'搭配加载失败，请重试',true);updateDownload();}
@@ -100,7 +115,18 @@ function activateTab(tab){
 async function init(){
   try{
     document.documentElement.dataset.game=gameKey;document.title='奇迹鱿鱿 · '+gameName;
-    ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearHair,wearFlags}=await import(profiles[gameKey].core));
+    const core=await import(profiles[gameKey].core);
+    ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearHair,wearFlags,setPreviewPose}=core);
+    if(setPreviewPose){
+      for(const {id,label} of core.previewPoses){
+        const option=document.createElement('option');option.value=id;option.textContent=label;poseChoice.append(option);
+      }
+      $('#pose-field').hidden=false;
+      poseChoice.addEventListener('change',()=>{
+        previewPose=poseChoice.value;
+        if(model&&!loading&&!hasError){setPreviewPose(model,previewPose);fitCamera();}
+      });
+    }
     const response=await fetch(profiles[gameKey].catalog);if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
     if(gameKey==='spl3'&&catalog.game!=='spl3'||catalog.game&&catalog.game!==gameKey)throw Error('搭配目录不匹配，请刷新重试');
     $('#wear-categories').hidden=gameKey!=='spl3';
@@ -122,7 +148,7 @@ async function init(){
     $('#hair-hex').addEventListener('input',e=>e.target.setCustomValidity(''));
     for(const tab of document.querySelectorAll('[role=tab]')){tab.addEventListener('click',()=>activateTab(tab));tab.addEventListener('keydown',e=>{const tabs=[...document.querySelectorAll('[role=tab]')];if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(tabs.indexOf(tab)+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;activateTab(tabs[i]);tabs[i].focus();});}
     $('#reset-view').addEventListener('click',resetCamera);
-    $('#reset-character').addEventListener('click',()=>{state=normalize(DEFAULTS,catalog);persist();hairChoices();browChoices();outfitChoices();sync();resetCamera();rebuild();});
+    $('#reset-character').addEventListener('click',()=>{poseChoice.value=previewPose='rest';state=normalize(DEFAULTS,catalog);persist();hairChoices();browChoices();outfitChoices();sync();resetCamera();rebuild();});
     retry.addEventListener('click',rebuild);
     renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();hasError=true;updateDownload();showStatus('三维预览已暂停，正在恢复…');});
     renderer.domElement.addEventListener('webglcontextrestored',()=>rebuild());
