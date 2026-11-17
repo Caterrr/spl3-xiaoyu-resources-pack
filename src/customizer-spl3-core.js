@@ -2,8 +2,8 @@ import * as THREE from './vendor/three/build/three.module.min.js';
 import {GLTFExporter} from './vendor/three/examples/jsm/exporters/GLTFExporter.js';
 import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
 import {loadAsset,joinAsset,prepareTints,dispose,tint,setEye} from './customizer-core.js?v=69cc12eec1d2';
-import {restoreExportPose} from './customizer-spl3-poses.js?v=37157fd4cdb3';
-export {previewPoses,setPreviewPose} from './customizer-spl3-poses.js?v=37157fd4cdb3';
+import {restoreExportPose} from './customizer-spl3-poses.js?v=5d9786665078';
+export {previewPoses,loadPreviewPose,setPreviewPose} from './customizer-spl3-poses.js?v=5d9786665078';
 export {dispose,tint,setEye};
 
 export const DEFAULTS=Object.freeze({species:'squid',gender:'female',hair:'spl3:Har_SQD001',brow:1,outfit:'spl3:Clt_TES000',bottom:'spl3:Btm_000',headgear:'spl3:none:headgear',shoes:'spl3:Shs_SDL000',eye:0,color:'#ff5d1c'});
