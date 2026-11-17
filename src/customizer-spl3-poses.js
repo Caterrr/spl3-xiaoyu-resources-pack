@@ -1,10 +1,28 @@
 import {Quaternion,Sphere} from './vendor/three/build/three.module.min.js';
-import {poses} from './catalog/spl3/poses.js?v=5a2c69b67b13';
+import {poses,poseFiles,batchSize} from './catalog/spl3/poses.js?v=1f69fd11048d';
 
-export const previewPoses=poses.map(({id,label,clip})=>({id,label,clip,group:'原版姿势'}));
-const bindPoses=new WeakMap();
-export function loadPreviewPose(id){
-  return poses.find(p=>p.id===id)??null;
+export const previewPoses = poses;
+const index = new Map(poses.map((pose,i)=>[pose.id,i]));
+const batches = new Map();
+const bindPoses = new WeakMap();
+
+export async function loadPreviewPose(id){
+  if(id==='rest')return null;
+  const i=index.get(id);
+  if(i===undefined)throw Error('姿势不存在');
+  const batch=Math.floor(i/batchSize);
+  if(!batches.has(batch)){
+    const url=new URL('./catalog/spl3/'+poseFiles[batch],import.meta.url);
+    batches.set(batch,fetch(url).then(async response=>{
+      if(!response.ok)throw Error('姿势加载失败');
+      const blob=await response.blob();
+      const header=new Uint8Array(await blob.slice(0,2).arrayBuffer());
+      return header[0]===31 && header[1]===139
+        ?new Response(blob.stream().pipeThrough(new DecompressionStream('gzip'))).json()
+        :JSON.parse(await blob.text());
+    }).catch(error=>{batches.delete(batch);throw error;}));
+  }
+  return (await batches.get(batch))[i%batchSize];
 }
 function bodyBones(character){
   let body;
