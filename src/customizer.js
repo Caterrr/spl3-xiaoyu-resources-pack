@@ -3,8 +3,8 @@ import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.
 import {setupPosePanel} from './customizer-pose-menu.js?v=182a05f9b48f';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=29b27084bf03',core:'./customizer-spl3-core.js?v=6c70dcf9896e'}};
-let DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearHair,wearFlags;
+const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=29b27084bf03',core:'./customizer-spl3-core.js?v=e39c30708c6c'}};
+let DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
@@ -82,19 +82,12 @@ function sync(){
   selectedButtons($('#hair-choices'),state.hair);selectedButtons($('#outfit-choices'),state[wearKey()]);
   selectedButtons($('#brow-choices'),state.brow);
   selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
-  const hairNotice=$('#hair-notice');
-  const effectiveHair=gameKey==='spl3'?headgearHair(catalog.headgear.find(x=>x.id===state.headgear),state):undefined;
-  const headgearNotice=effectiveHair===null?'当前发饰会遮住发型，取下后恢复所选发型。'
-    :effectiveHair&&effectiveHair!==state.hair?'试戴中暂时使用适配发型，取下后恢复所选发型。':'';
   if(gameKey==='spl3'){
-    hairNotice.textContent=headgearNotice;
-    hairNotice.hidden=!headgearNotice;
     const flags=wearFlags(catalog,state);
     const blocked=wearKind==='shoes'&&flags.integratedShoes?'这套衣服自带鞋子，换下后恢复所选鞋子。'
       :wearKind==='bottoms'&&flags.hidePants?'这套衣服自带下装，换下后恢复所选裤子。':'';
-    const notice=blocked||(wearKind==='headgear'?headgearNotice:'');
-    $('#wear-notice').textContent=notice;
-    $('#wear-notice').hidden=!notice;
+    $('#wear-notice').textContent=blocked;
+    $('#wear-notice').hidden=!blocked;
     for(const button of $('#outfit-choices').querySelectorAll('button'))button.disabled=!!blocked;
   }
 }
@@ -111,12 +104,8 @@ function browChoices(){choices($('#brow-choices'),catalog.brows.filter(x=>x.spec
 function outfitChoices(){
   let entries;
   if(gameKey!=='spl3')entries=catalog.outfits;
-  else if(wearKind==='headgear'){
-    entries=catalog.headgear.filter(entry=>headgearHair(entry,state)!==undefined).map(entry=>{
-      const hair=headgearHair(entry,state);
-      return hair&&hair!==state.hair?{...entry,accessibleName:entry.name+'，试戴时暂时更换发型'}:entry;
-    });
-  }else entries=catalog[wearKind].filter(entry=>supports(entry,state.gender));
+  else if(wearKind==='headgear')entries=catalog.headgear.filter(entry=>headgearAvailable(entry,state));
+  else entries=catalog[wearKind].filter(entry=>supports(entry,state.gender));
   choices($('#outfit-choices'),entries.map(entry=>({...entry,poster:entry.variants?.[state.gender]?.poster||entry.poster})),id=>change({[wearKey()]:id}));
   selectedButtons($('#outfit-choices'),state[wearKey()]);
   if(gameKey==='spl3')sync();
@@ -154,7 +143,7 @@ async function init(){
   try{
     document.documentElement.dataset.game=gameKey;document.title='奇迹鱿鱿 · '+gameName;
     const core=await import(profiles[gameKey].core);
-    ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearHair,wearFlags,setPreviewPose,loadPreviewPose}=core);
+    ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags,setPreviewPose,loadPreviewPose}=core);
     if(setPreviewPose){
       const poses=core.previewPoses;
       poseMenu=setupPosePanel($('#panel-pose'),poses,choosePose);

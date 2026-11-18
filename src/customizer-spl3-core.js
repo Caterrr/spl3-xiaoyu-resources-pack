@@ -2,6 +2,7 @@ import * as THREE from './vendor/three/build/three.module.min.js';
 import {GLTFExporter} from './vendor/three/examples/jsm/exporters/GLTFExporter.js';
 import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
 import {loadAsset,joinAsset,prepareTints,dispose,tint,setEye} from './customizer-core.js?v=69cc12eec1d2';
+import {loadHeadgearFit,applyHeadgearFit} from './customizer-spl3-headgear.js?v=6c27f7e6b332';
 import {restoreExportPose} from './customizer-spl3-poses.js?v=cccff232be2b';
 export {previewPoses,loadPreviewPose,setPreviewPose} from './customizer-spl3-poses.js?v=cccff232be2b';
 export {dispose,tint,setEye};
@@ -11,17 +12,8 @@ export function avatarId(s){return 'spl3:Player0'+(Number(s.species==='octopus')
 export function browId(s){return `spl3:Eyb_${s.species==='octopus'?'OCT':'SQD'}00${s.brow}_${s.gender==='male'?'M':'F'}`;}
 export function supports(entry,gender){return !!entry&&(entry.empty||!!entry.variants?.[gender]);}
 export function headgearRule(entry,s){return entry?.fitByAvatar?.[avatarId(s)]||{};}
-export function headgearHair(entry,state){
-  if(entry?.empty)return state.hair;
-  if(!supports(entry,state.gender))return undefined;
-  const rule=entry.fitByAvatar?.[avatarId(state)];
-  if(!rule)return undefined;
-  if(rule.hideHair)return null;
-  // The published catalog stores allowed styles by gender. Style keys also encode species.
-  const speciesPrefix=state.species==='octopus'?'spl3:Har_OCT':'spl3:Har_SQD';
-  const allowed=rule.hair??entry.compatibleHair?.[state.gender]?.filter(style=>style.startsWith(speciesPrefix))??[];
-  if(allowed.includes(state.hair))return state.hair;
-  return allowed.includes(rule.fallbackHair)?rule.fallbackHair:allowed[0];
+export function headgearAvailable(entry,state){
+  return !!(entry?.empty||(supports(entry,state.gender)&&entry.fitByAvatar?.[avatarId(state)]));
 }
 export function normalize(input,catalog){
   if(catalog.game!=='spl3')throw Error('喷3搭配目录不匹配');
@@ -36,7 +28,7 @@ export function normalize(input,catalog){
     if(!valid.length)throw Error('服装资源不完整');
     if(!valid.some(e=>e.id===s[key]))s[key]=(valid.find(e=>e.id===DEFAULTS[key])||valid[0]).id;
   }
-  if(headgearHair(catalog.headgear.find(e=>e.id===s.headgear),s)===undefined)s.headgear=DEFAULTS.headgear;
+  if(!headgearAvailable(catalog.headgear.find(e=>e.id===s.headgear),s))s.headgear=DEFAULTS.headgear;
   s.eye=Number.isInteger(Number(s.eye))?Math.max(0,Math.min(catalog.eyes.length-1,Number(s.eye))):0;
   s.brow=Number.isInteger(Number(s.brow))&&Number(s.brow)>=0&&Number(s.brow)<=3?Number(s.brow):DEFAULTS.brow;
   if(!/^#[\da-f]{6}$/i.test(s.color))s.color=DEFAULTS.color;
@@ -64,15 +56,17 @@ export async function assemble(catalog,input){
   const state=normalize(input,catalog),flags=wearFlags(catalog,state);
   const outfit=catalog.clothes.find(e=>e.id===state.outfit),headgear=catalog.headgear.find(e=>e.id===state.headgear),shoe=catalog.shoes.find(e=>e.id===state.shoes);
   const headRule=headgearRule(headgear,state);
-  const effectiveHair=headgearHair(headgear,state);
   const bottom=catalog.bottoms.find(e=>e.id===state.bottom);
   const entries={body:catalog.avatars.find(e=>e.id===avatarId(state)),wear:variant(outfit,state),brow:catalog.brows.find(e=>e.id===browId(state))};
   if(!flags.hidePants)entries.bottom=variant(bottom,state);
   if(!flags.integratedShoes&&!shoe.empty)entries.shoes=variant(shoe,state);
   if(!headgear.empty)entries.headgear=variant(headgear,state);
-  if(effectiveHair)entries.hair=variant(catalog.hair.find(e=>e.id===effectiveHair),state);
-  const keys=Object.keys(entries),loaded=await Promise.allSettled(keys.map(key=>load(entries[key])));
-  const failure=loaded.find(r=>r.status==='rejected');
+  entries.hair=variant(catalog.hair.find(e=>e.id===state.hair),state);
+  const fitRequest=entries.headgear?loadHeadgearFit(entries.headgear,entries.hair):null;
+  const keys=Object.keys(entries);
+  const loaded=await Promise.allSettled([...keys.map(key=>load(entries[key])),fitRequest]);
+  const fit=loaded.pop();
+  const failure=fit.status==='rejected'?fit:loaded.find(r=>r.status==='rejected');
   if(failure){for(const r of loaded)if(r.status==='fulfilled')dispose(r.value.scene);throw failure.reason;}
   const assets=Object.fromEntries(keys.map((key,i)=>[key,loaded[i].value]));
   const character=new THREE.Group();character.name='Splatoon3_Character';character.add(assets.body.scene);
@@ -80,6 +74,7 @@ export async function assemble(catalog,input){
     const rig=rigOf(assets.body.scene),roles={};assets.body.scene.traverse(o=>{if(o.userData.role)roles[o.userData.role]=o;});
     if(!roles.body||!roles.eye||!roles.face||!roles.faceNoEars)throw Error('角色部件不完整');
     roles.face.visible=!headRule.hideEars;roles.faceNoEars.visible=!!headRule.hideEars;
+    applyHeadgearFit(fit.value,assets.headgear,assets.hair);
     for(const [key,asset] of Object.entries(assets))if(key!=='body')joinAsset(character,asset.scene,rig);
     const maskFor=entry=>{const key=entry?.maskTexture;if(!key)return null;if(!catalog.masks[key])throw Error('服装遮罩缺失');return catalog.masks[key];};
     const masks=[maskFor(entries.wear)];
@@ -89,7 +84,7 @@ export async function assemble(catalog,input){
     const eyeImages=await Promise.all(assets.body.scene.userData.eyes.map(image));
     const eyeCanvas=canvasImage(eyeImages[state.eye],Math.max(...eyeImages.map(im=>im.width)),Math.max(...eyeImages.map(im=>im.height)));replaceMap(roles.eye.material,eyeCanvas.canvas);
     const tints=await prepareTints(character);tint(tints,state.color);character.updateMatrixWorld(true);
-    return {game:'spl3',character,rig,tints,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state},effectiveHair,flags};
+    return {game:'spl3',character,rig,tints,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state},flags};
   }catch(error){dispose(character);for(const asset of Object.values(assets))if(!asset.scene.parent)dispose(asset.scene);throw error;}
 }
 export async function exportCharacter(model){
@@ -97,7 +92,7 @@ export async function exportCharacter(model){
   const scene=clone(model.character),materials=new Map();
   restoreExportPose(model,scene);
   scene.traverse(o=>{o.userData={};if(o.material){const copy=m=>{if(!materials.has(m)){const n=m.clone();n.userData={};materials.set(m,n);}return materials.get(m);};o.material=Array.isArray(o.material)?o.material.map(copy):copy(o.material);}});
-  scene.userData={game:'Splatoon 3',customization:{...model.state,hair:model.effectiveHair}};
+  scene.userData={game:'Splatoon 3',customization:{...model.state}};
   try{return await new GLTFExporter().parseAsync(scene,{binary:true,onlyVisible:true,maxTextureSize:4096});}
   finally{for(const m of materials.values())m.dispose();scene.traverse(o=>o.skeleton?.dispose());}
 }
