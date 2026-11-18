@@ -1,6 +1,6 @@
 // Fit data is tied to the exact canonical GLBs and loaded on the first try-on.
 export async function loadHeadgearFit(headgear, hair) {
-  const {default: fits} = await import('./customizer-spl3-headgear-fit-data.js?v=bb2bc35e917d');
+  const {default: fits} = await import('./customizer-spl3-headgear-fit-data.js?v=d898e0eaf096');
   return fits[headgear.sha256.slice(0, 16)]?.[hair.sha256.slice(0, 16)];
 }
 

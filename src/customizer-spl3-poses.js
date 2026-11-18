@@ -1,6 +1,7 @@
 import {Quaternion,Sphere} from './vendor/three/build/three.module.min.js';
 import {poses,poseFiles,batchSize} from './catalog/spl3/poses.js?v=e104d7d9c216';
 
+// The customizers share the same body-bone rest transforms.
 export const previewPoses = poses;
 const index = new Map(poses.map((pose,i)=>[pose.id,i]));
 const batches = new Map();
@@ -40,12 +41,14 @@ export function setPreviewPose(model,pose,animate=false){
     bindPoses.set(model,bind);
   }
   const avatar='Player0'+(Number(model.state.species==='octopus')*2+Number(model.state.gender==='male'));
-  const changes=pose?.variants[avatar]??pose?.bones;
+  const changes=pose?.variants?.[avatar]??pose?.bones;
+  const keepMouth=model.game==='raiders';
   const turn=new Quaternion(),tracks=[];
   for(const {bone,position,rotation,scale} of bind){
     const start=animate?snapshot(bone):null;
     bone.position.copy(position);bone.quaternion.copy(rotation);bone.scale.copy(scale);
-    const d=changes?.[bone.name];
+    // Raiders has a separate mouth and teeth setup, with different mouth bones on octolings.
+    const d=keepMouth&&bone.name.startsWith('Mouth')?undefined:changes?.[bone.name];
     if(d){
       bone.position.x+=d[0];bone.position.y+=d[1];bone.position.z+=d[2];
       bone.quaternion.multiply(turn.fromArray(d,3)).normalize();

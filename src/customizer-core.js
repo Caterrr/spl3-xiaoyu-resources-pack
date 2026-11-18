@@ -2,6 +2,8 @@ import * as THREE from './vendor/three/build/three.module.min.js';
 import {GLTFLoader} from './vendor/three/examples/jsm/loaders/GLTFLoader.js';
 import {GLTFExporter} from './vendor/three/examples/jsm/exporters/GLTFExporter.js';
 import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
+import {restoreExportPose} from './customizer-spl3-poses.js?v=7800c405309e';
+export {previewPoses,loadPreviewPose,setPreviewPose} from './customizer-spl3-poses.js?v=7800c405309e';
 
 export const DEFAULTS = Object.freeze({species:'squid',gender:'female',hair:'Har_SQD001_F',brow:1,outfit:'Clt_AGL001',eye:0,color:'#ff5d1c'});
 export function normalize(input, catalog) {
@@ -120,12 +122,13 @@ export async function assemble(catalog,state){
     const eyeCanvas=canvasImage(eyeImages[state.eye]);replaceMap(roles.eye.material,eyeCanvas.canvas);
     const tints=await prepareTints(character);tint(tints,state.color);
     character.updateMatrixWorld(true);
-    return {character,rig,tints,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state}};
+    return {game:'raiders',character,rig,tints,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state}};
   }catch(e){dispose(character);if(!wear.scene.parent)dispose(wear.scene);if(!brow.scene.parent)dispose(brow.scene);if(hair&&!hair.scene.parent)dispose(hair.scene);throw e;}
 }
 export function setEye(model,index){const {canvas,ctx}=model.eyeCanvas;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(model.eyeImages[index],0,0,canvas.width,canvas.height);model.eyeMaterial.map.needsUpdate=true;model.state.eye=index;}
 export async function exportCharacter(model){
   const scene=clone(model.character),materials=new Map();
+  restoreExportPose(model,scene);
   scene.traverse(o=>{
     o.userData={};
     if(o.material){const copy=m=>{if(!materials.has(m)){const n=m.clone();n.userData={};materials.set(m,n);}return materials.get(m);};o.material=Array.isArray(o.material)?o.material.map(copy):copy(o.material);}

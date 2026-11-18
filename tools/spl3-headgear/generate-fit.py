@@ -22,6 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 # pulling the contact points of glasses, masks or ear accessories off the face.
 VISORS = {"Hed_COP111", "Hed_VIS003", "Hed_VIS005", "Hed_VIS006", "Hed_HBD005"}
 SEALED_VISORS = {"Hed_COP113"}
+OPEN_FRAMES = {"Hed_EYE011", "Hed_EYE024", "Hed_EYE025", "Hed_EYE027",
+               "Hed_EYE031", "Hed_HAP026", "Hed_HAP027"}
 OFFSET_DIRECTIONS = {
     "Hed_AMB021": ((0, 1, 0),),
     "Hed_HAP014": ((0, 1, 0),),
@@ -81,14 +83,14 @@ def overlaps(gear, hair):
     return {index for _, index in gear.overlap(hair)}
 
 
-def covered_faces(gear, positions, faces, sealed_visor):
+def covered_faces(gear, positions, faces, minimum_height, sealed_visor):
     # Cast from inside the crown toward the hair. If the shell is encountered
     # first, hair on that ray would stick through the outside of the helmet.
     depths = (0, .039, -.039) if sealed_visor else (0,)
     origins = [Vector((0, 1.48, z)) for z in depths]
     centers = positions[faces].mean(axis=1)
     for index, (x, y, z) in enumerate(centers):
-        if y < 1.19:
+        if y < minimum_height:
             continue
         point = Vector((x, y, z))
         for origin in origins:
@@ -155,6 +157,8 @@ def main():
             trials.extend(((0, rise, 0), scale)
                           for scale in (1.02, 1.04, 1.06, 1.09, 1.12)
                           for rise in (0, .01, .02, .035))
+        if source in OPEN_FRAMES:
+            trials.extend(((0, 0, 0), scale) for scale in (1.01, 1.02, 1.03, 1.045, 1.06))
         for shift, scale in trials:
             if best_count == 0:
                 break
@@ -164,15 +168,24 @@ def main():
             if count < best_count:
                 offset, width, remaining, best_count = shift, scale, found, count
 
+        if source in OPEN_FRAMES:
+            # Thin temples can disappear naturally behind individual strands.
+            # Widen the frame a little when it helps, keeping the hair surface intact.
+            faces = sum(len(triangles) for _, triangles, _ in primitives(hair_sha).values())
+            return ({"width": width} if width != 1 else {}), [collision_count, 0, faces]
+
         sealed_visor = source in SEALED_VISORS
-        shell = full_tree(gear_sha, shell_only=not sealed_visor) if cover else None
+        cap = source.startswith("Hed_CAP")
+        shell = full_tree(gear_sha, shell_only=not sealed_visor) if cover or cap else None
+        # Caps cover the crown, while loose hair below the brim should keep its length.
+        minimum_height = 1.52 if cap else 1.19
         masks = {}
         removed_count = 0
         face_count = 0
         for key, (positions, faces, _) in primitives(hair_sha).items():
             removed = set(remaining[key])
             if shell:
-                removed.update(covered_faces(shell, positions, faces, sealed_visor))
+                removed.update(covered_faces(shell, positions, faces, minimum_height, sealed_visor))
             face_count += len(faces)
             encoded = encode_removed(faces, removed)
             if encoded:
