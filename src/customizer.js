@@ -13,8 +13,8 @@ let previewPose='rest',poseData=null,poseTicket=0,poseFrame=0,poseMenu,loadPrevi
 let wearKind='clothes';
 const wearKey=()=>({clothes:'outfit',bottoms:'bottom'})[wearKind]||wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
-const downloadBlend=$('#download-blend'),dice=$('#randomize-character');
-function updateDownload(){dice.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
+const downloadBlend=$('#download-blend'),downloadVRM=$('#download-vrm'),dice=$('#randomize-character');
+function updateDownload(){dice.disabled=downloadVRM.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
 function render(){if(renderer&&scene&&camera)renderer.render(scene,camera);}
 function framing(reset=false){
@@ -196,18 +196,25 @@ async function init(){
       if(download.disabled||downloadBlend.disabled)return;exporting=true;updateDownload();downloadStatus.textContent='正在打包模型与贴图…';
       const selected=model,selection={...model.state};
       try{
-        const bytes=await exportCharacter(selected);
-        const blob=format==='blend'
-          ? await (await import('./customizer-blend.js')).blenderCharacter(bytes)
-          : new Blob([bytes],{type:'model/gltf-binary'});
+        const outfit=(gameKey==='spl3'?catalog.clothes:catalog.outfits).find(x=>x.id===selection.outfit).name;
+        const title=`${gameName}-${selection.species==='squid'?'鱿鱼':'章鱼'}-${selection.gender==='female'?'女':'男'}-${outfit}`;
+        let blob;
+        if(format==='vrm'){
+          const {exportVRM}=await import('./customizer-vrm.js?v=4dd990facd12');
+          blob=await exportVRM(selected,title);
+        }else{
+          const bytes=await exportCharacter(selected);
+          blob=format==='blend' ? await (await import('./customizer-blend.js')).blenderCharacter(bytes)
+            : new Blob([bytes],{type:'model/gltf-binary'});
+        }
         const url=URL.createObjectURL(blob),a=document.createElement('a');
-        const title=(gameKey==='spl3'?catalog.clothes:catalog.outfits).find(x=>x.id===selection.outfit).name;
-        a.href=url;a.download=`${gameName}-${selection.species==='squid'?'鱿鱼':'章鱼'}-${selection.gender==='female'?'女':'男'}-${title}.${format}`;a.style.display='none';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-        downloadStatus.textContent=format==='blend'?'在 Blender 中打开文件，点击 ▶ 或按 Alt + P 载入搭配，然后保存。':`已生成 GLB · ${(bytes.byteLength/1024/1024).toFixed(1)} MB`;
+        a.href=url;a.download=`${title}.${format}`;a.style.display='none';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+        downloadStatus.textContent=format==='blend'?'在 Blender 中打开文件，点击 ▶ 或按 Alt + P 载入搭配，然后保存。':`已生成 ${format.toUpperCase()} · ${(blob.size/1024/1024).toFixed(1)} MB`;
       }catch(e){downloadStatus.textContent='下载未完成，请重新点击下载。';console.error(e);}
       finally{exporting=false;updateDownload();}
     }
     download.addEventListener('click',()=>downloadModel('glb'));
+    downloadVRM.addEventListener('click',()=>downloadModel('vrm'));
     downloadBlend.addEventListener('click',()=>downloadModel('blend'));
     await rebuild();
   }catch(e){showStatus(e.message?.includes('WebGL')?'当前浏览器无法开启三维预览，请开启硬件加速后刷新。':e.message||'页面加载失败，请刷新重试',true);retry.onclick=()=>location.reload();download.disabled=true;}
