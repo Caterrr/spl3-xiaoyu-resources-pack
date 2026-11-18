@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three/build/three.module.min.js';
 import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.js';
-import {setupPoseMenu} from './customizer-pose-menu.js?v=48df6872dd7d';
+import {setupPosePanel} from './customizer-pose-menu.js?v=4539599bad80';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
 const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=69cc12eec1d2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=29b27084bf03',core:'./customizer-spl3-core.js?v=d1c8b6ddb6b4'}};
@@ -10,12 +10,11 @@ const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stag
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
 const storageKey=gameKey+'-character-v1';
 let previewPose='rest',poseData=null,poseTicket=0,poseFrame=0,poseMenu,loadPreviewPose,setPreviewPose;
-const poseTrigger=$('.pose-trigger');
 let wearKind='clothes';
 const wearKey=()=>({clothes:'outfit',bottoms:'bottom'})[wearKind]||wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
 const downloadBlend=$('#download-blend');
-function updateDownload(){poseTrigger.disabled=exporting;downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
+function updateDownload(){downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
 function render(){if(renderer&&scene&&camera)renderer.render(scene,camera);}
 function framing(reset=false){
@@ -155,7 +154,10 @@ async function init(){
     document.documentElement.dataset.game=gameKey;document.title='奇迹鱿鱿 · '+gameName;
     const core=await import(profiles[gameKey].core);
     ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearHair,wearFlags,setPreviewPose,loadPreviewPose}=core);
-    if(setPreviewPose)poseMenu=setupPoseMenu($('#pose-field'),core.previewPoses,choosePose);
+    if(setPreviewPose){
+      poseMenu=setupPosePanel($('#panel-pose'),core.previewPoses,choosePose);
+      $('#tab-pose').hidden=false;
+    }
     const response=await fetch(profiles[gameKey].catalog);if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
     if(gameKey==='spl3'&&catalog.game!=='spl3'||catalog.game&&catalog.game!==gameKey)throw Error('搭配目录不匹配，请刷新重试');
     $('#wear-categories').hidden=gameKey!=='spl3';
@@ -168,7 +170,7 @@ async function init(){
     scene.add(new THREE.HemisphereLight(0xffffff,0x6f737e,2.6));const key=new THREE.DirectionalLight(0xffffff,2.5);key.position.set(3,5,5);scene.add(key);const fill=new THREE.DirectionalLight(0xaabfff,1.2);fill.position.set(-3,2,-3);scene.add(fill);
     controls=new OrbitControls(camera,renderer.domElement);controls.minDistance=.7;controls.maxDistance=7;controls.maxPolarAngle=Math.PI*.95;controls.enablePan=true;controls.addEventListener('change',render);controls.listenToKeyEvents(renderer.domElement);
     controls.addEventListener('start',()=>{if(poseFrame){cancelPoseMotion();setPreviewPose(model,poseData);render();}});
-    new ResizeObserver(()=>{const r=stage.getBoundingClientRect();stage.style.setProperty('--stage-height',r.height+'px');camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);fitCamera();}).observe(stage);
+    new ResizeObserver(()=>{const r=stage.getBoundingClientRect();camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);fitCamera();}).observe(stage);
     fitCamera(true);hairChoices();browChoices();outfitChoices();
     swatches($('#hair-swatches'),['#ff5d1c','#f5cc26','#a5d83d','#25b89a','#3587ed','#6147d4','#b546da','#ef68ae','#eeeeee','#222222'].map(x=>({id:x,color:x,name:x})),color=>change({color}));
     swatches($('#eye-swatches'),catalog.eyes.map((x,i)=>({...x,id:String(i)})),eye=>change({eye:Number(eye)}));sync();
@@ -176,7 +178,15 @@ async function init(){
     $('#hair-color').addEventListener('input',e=>change({color:e.target.value}));
     $('#hair-hex').addEventListener('change',e=>{const v=e.target.value.trim();if(/^#[\da-f]{6}$/i.test(v)){e.target.setCustomValidity('');change({color:v});}else{e.target.setCustomValidity('请输入 # 加六位颜色值，例如 #ff5d1c');e.target.reportValidity();}});
     $('#hair-hex').addEventListener('input',e=>e.target.setCustomValidity(''));
-    for(const tab of document.querySelectorAll('[role=tab]')){tab.addEventListener('click',()=>activateTab(tab));tab.addEventListener('keydown',e=>{const tabs=[...document.querySelectorAll('[role=tab]')];if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const i=e.key==='Home'?0:e.key==='End'?tabs.length-1:(tabs.indexOf(tab)+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;activateTab(tabs[i]);tabs[i].focus();});}
+    const tabs=[...$('.editor-tabs').querySelectorAll('[role=tab]:not([hidden])')];
+    for(const [index,tab] of tabs.entries()){
+      tab.addEventListener('click',()=>activateTab(tab));
+      tab.addEventListener('keydown',event=>{
+        const next={ArrowLeft:(index+tabs.length-1)%tabs.length,ArrowRight:(index+1)%tabs.length,Home:0,End:tabs.length-1}[event.key];
+        if(next===undefined)return;
+        event.preventDefault();activateTab(tabs[next]);tabs[next].focus();
+      });
+    }
     $('#reset-character').addEventListener('click',()=>{
       ++poseTicket;previewPose='rest';poseData=null;poseMenu?.reset();
       state=normalize(DEFAULTS,catalog);persist();hairChoices();browChoices();outfitChoices();sync();rebuild(true);

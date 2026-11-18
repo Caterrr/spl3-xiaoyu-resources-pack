@@ -5,7 +5,7 @@
 <meta name="description" content="奇迹鱿鱿：搭配涂击队角色、发型与服装，实时预览并下载带骨骼和贴图的 GLB。">
 <link rel="icon" href="./assets/site-icon.ico"><link rel="stylesheet" href="./styles.css?v=0bea74d42a71">
 <link rel="stylesheet" href="./model-menu.css?v=00bd25ae1770"><link rel="stylesheet" href="./typography.css?v=a554d1e98007">
-<link rel="stylesheet" href="./responsive.css?v=92ea0f60204c"><link rel="stylesheet" href="./customizer.css?v=480151bdd7fe">
+<link rel="stylesheet" href="./responsive.css?v=92ea0f60204c"><link rel="stylesheet" href="./customizer.css?v=4ce47b888ed0">
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
 </head><body class="customizer-page">
 <header class="site-header">
@@ -75,13 +75,6 @@
 <div class="customizer-layout">
 <section class="character-stage" id="character-stage" aria-label="角色预览">
 <div class="stage-tools"><button type="button" id="reset-character">重置</button></div>
-<div class="preview-pose" id="pose-field" hidden>
-  <button type="button" class="pose-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="pose-panel"><span>预览姿势</span><span class="pose-current">初始姿势</span><span class="pose-caret" aria-hidden="true"></span></button>
-  <div class="pose-panel" id="pose-panel" role="dialog" aria-label="选择姿势" inert>
-    <div class="pose-filters"><input type="search" placeholder="搜索全部姿势" aria-label="搜索姿势"><select aria-label="姿势分类"><option value="">常用姿势</option></select></div>
-    <div class="pose-list" aria-label="姿势列表"></div>
-  </div>
-</div>
 <div class="stage-status" id="stage-status" role="status" aria-live="polite"><p id="stage-message">加载搭配…</p><button type="button" id="retry-character" hidden>重试</button></div>
 </section>
 <aside class="customizer-controls" aria-label="搭配选项">
@@ -90,7 +83,7 @@
 <fieldset class="identity-field"><legend>性别</legend><div class="identity-options"><label><input type="radio" name="gender" value="female" checked><span>女</span></label><label><input type="radio" name="gender" value="male"><span>男</span></label></div></fieldset>
 </div>
 <div class="editor-tabs" role="tablist" aria-label="搭配类别">
-<button type="button" role="tab" id="tab-hair" aria-controls="panel-hair" aria-selected="true">头部</button><button type="button" role="tab" id="tab-outfit" aria-controls="panel-outfit" aria-selected="false" tabindex="-1">服装</button><button type="button" role="tab" id="tab-color" aria-controls="panel-color" aria-selected="false" tabindex="-1">颜色</button>
+<button type="button" role="tab" id="tab-hair" aria-controls="panel-hair" aria-selected="true">头部</button><button type="button" role="tab" id="tab-outfit" aria-controls="panel-outfit" aria-selected="false" tabindex="-1">服装</button><button type="button" role="tab" id="tab-color" aria-controls="panel-color" aria-selected="false" tabindex="-1">颜色</button><button type="button" role="tab" id="tab-pose" aria-controls="panel-pose" aria-selected="false" tabindex="-1" hidden>动作调整</button>
 </div>
 <div id="panel-hair" class="editor-panel" role="tabpanel" aria-labelledby="tab-hair"><p class="choice-notice" id="hair-notice" hidden>这套服装的头盔会遮住发型；换下后恢复所选发型。</p><fieldset class="head-field"><legend>眉毛</legend><div class="choices brow-choices" id="brow-choices"></div></fieldset><fieldset class="head-field"><legend>发型</legend><div class="choices" id="hair-choices"></div></fieldset></div>
 <div id="panel-outfit" class="editor-panel" role="tabpanel" aria-labelledby="tab-outfit" hidden>
@@ -107,6 +100,10 @@
 <fieldset class="color-field"><legend>头发颜色</legend><div class="swatches" id="hair-swatches" role="group" aria-label="头发预设颜色"></div><div class="color-inputs"><input id="hair-color" type="color" value="#ff5d1c" aria-label="选择头发颜色"><input id="hair-hex" type="text" value="#ff5d1c" maxlength="7" spellcheck="false" aria-label="头发十六进制颜色值"></div></fieldset>
 <fieldset class="color-field"><legend>眼睛颜色</legend><div class="swatches" id="eye-swatches" role="group" aria-label="选择眼睛颜色"></div></fieldset>
 </div>
+<div id="panel-pose" class="editor-panel" role="tabpanel" aria-labelledby="tab-pose" hidden>
+  <div class="pose-filters"><input type="search" placeholder="搜索全部姿势" aria-label="搜索姿势"><select aria-label="姿势分类"><option value="">常用姿势</option></select></div>
+  <div class="pose-list" role="group" aria-label="姿势列表"></div>
+</div>
 <div class="editor-actions"><button type="button" id="download-blend" class="download-character" disabled>blender（骨骼+控制器）</button><button type="button" id="download-character" class="download-character" disabled><span>下载 GLB</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></button><p id="download-status" class="download-status" role="status" aria-live="polite"></p></div>
 </aside></div></main>
 <dialog id="social-dialog" aria-labelledby="social-title">
@@ -114,4 +111,4 @@
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="./model-menu.js?v=5fd87dd8ce87" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=e1c8f913b9fc"></script></body></html>
+<script src="./model-menu.js?v=5fd87dd8ce87" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=0e27755d1416"></script></body></html>

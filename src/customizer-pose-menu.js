@@ -31,9 +31,8 @@ function familyOf(pose){
   }
   return {section,name,variant,key:section+'/'+name};
 }
-export function setupPoseMenu(field,poses,onChoose){
-  const trigger=field.querySelector('.pose-trigger'),panel=field.querySelector('.pose-panel');
-  const current=trigger.querySelector('.pose-current'),list=panel.querySelector('.pose-list');
+export function setupPosePanel(panel,poses,onChoose){
+  const list=panel.querySelector('.pose-list');
   const search=panel.querySelector('input'),category=panel.querySelector('select');
   const rest={id:'rest',label:'初始姿势',clip:'',group:''};
   const records=new Map([rest,...poses].map(p=>[p.id,p]));
@@ -56,7 +55,7 @@ export function setupPoseMenu(field,poses,onChoose){
   category.replaceChildren(new Option('常用姿势',''));
   for(const section of sections)category.add(new Option(section,section));
   category.hidden=poses.length<pageSize;
-  let selected='rest',open=false,detail=null,limit=pageSize;
+  let selected='rest',detail=null,limit=pageSize;
   function button(label,data,active){
     const b=document.createElement('button');b.type='button';b.textContent=label;
     Object.assign(b.dataset,data);
@@ -93,27 +92,17 @@ export function setupPoseMenu(field,poses,onChoose){
     list.replaceChildren(fragment);list.scrollTop=resetScroll?0:previousScroll;
   }
   function overview(){detail=null;limit=pageSize;draw();}
-  function toggle(next,focusTrigger=false){
-    open=next;trigger.setAttribute('aria-expanded',String(next));panel.inert=!next;
-    if(next){search.value='';category.value='';overview();search.focus({preventScroll:true});}
-    else if(focusTrigger)trigger.focus({preventScroll:true});
-  }
   function select(id){
-    const p=records.get(id);
-    selected=id;current.textContent=common.find(([key])=>key===id)?.[1]||p.label;trigger.title=current.textContent;
+    selected=id;
+    for(const b of list.querySelectorAll('[data-pose]'))b.setAttribute('aria-pressed',String(b.dataset.pose===id));
   }
-  trigger.addEventListener('click',()=>toggle(!open));
-  field.addEventListener('keydown',e=>{
-    if(e.key==='Escape'&&open){
-      e.preventDefault();if(detail){overview();search.focus();}else toggle(false,true);return;
-    }
-    if(!open||e.target===category||!['ArrowUp','ArrowDown'].includes(e.key))return;
+  panel.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&detail){e.preventDefault();overview();search.focus();return;}
+    if(e.target===category||!['ArrowUp','ArrowDown'].includes(e.key))return;
     const buttons=[...list.querySelectorAll('button')];if(!buttons.length)return;
     const i=buttons.indexOf(document.activeElement);
     e.preventDefault();buttons[Math.min(buttons.length-1,Math.max(0,i+(e.key==='ArrowUp'?-1:1)))].focus();
   });
-  field.addEventListener('focusout',e=>{if(open&&e.relatedTarget&&!field.contains(e.relatedTarget))toggle(false);});
-  document.addEventListener('pointerdown',e=>{if(open&&!field.contains(e.target))toggle(false);});
   search.addEventListener('input',()=>{if(search.value)category.value='';overview();});
   category.addEventListener('change',()=>{search.value='';overview();});
   list.addEventListener('click',e=>{
@@ -121,8 +110,8 @@ export function setupPoseMenu(field,poses,onChoose){
     if(b.dataset.more){const previous=limit;limit+=pageSize;draw(false);list.querySelectorAll('button')[previous+(detail?1:0)]?.focus();return;}
     if(b.dataset.back){const old=detail;overview();[...list.querySelectorAll('[data-family]')].find(x=>x.dataset.family===old)?.focus();return;}
     if(b.dataset.family){detail=b.dataset.family;limit=pageSize;draw();list.querySelector('[data-back]').focus();return;}
-    toggle(false,true);onChoose(b.dataset.pose);
+    onChoose(b.dataset.pose);
   });
-  field.hidden=false;
-  return {select,reset(){select('rest');toggle(false);}};
+  overview();
+  return {select,reset(){selected='rest';search.value='';category.value='';overview();}};
 }
