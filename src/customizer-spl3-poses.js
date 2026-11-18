@@ -1,5 +1,5 @@
 import {Quaternion,Sphere} from './vendor/three/build/three.module.min.js';
-import {poses,poseFiles,batchSize} from './catalog/spl3/poses.js?v=1f69fd11048d';
+import {poses,poseFiles,batchSize} from './catalog/spl3/poses.js?v=e104d7d9c216';
 
 export const previewPoses = poses;
 const index = new Map(poses.map((pose,i)=>[pose.id,i]));

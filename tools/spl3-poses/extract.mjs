@@ -92,13 +92,10 @@ for(const file of files){
 }
 const outDir=path.join(path.dirname(destination),'pose-data');
 fs.mkdirSync(outDir,{recursive:true});
-const entries=presets(allClips),chunks=[],labels=new Set(),ids=new Set();
+const entries=presets(allClips),chunks=[],ids=new Set();
 for(const entry of entries){
   if(ids.has(entry.id))throw Error('Duplicate id '+entry.id);
   ids.add(entry.id);
-  const signature=entry.group+'/'+entry.label;
-  if(labels.has(signature))entry.label+='（变体）';
-  labels.add(signature);
 }
 for(let i=0;i<entries.length;i+=32){
   const rows=entries.slice(i,i+32).map(({clip,frame})=>{
@@ -111,8 +108,8 @@ for(let i=0;i<entries.length;i+=32){
   });
   const bytes=gzipSync(JSON.stringify(rows),{level:9});
   const hash=createHash('sha256').update(bytes).digest('hex').slice(0,12);
-  const name='batch-'+String(chunks.length).padStart(2,'0')+'.json.gz';
-  fs.writeFileSync(path.join(outDir,name),bytes);chunks.push('./pose-data/'+name+'?v='+hash);
+  const name='holds-'+hash+'.json.gz';
+  fs.writeFileSync(path.join(outDir,name),bytes);chunks.push('./pose-data/'+name);
 }
 fs.writeFileSync(destination,'// Generated from the original player skeletons and animation packs.\nexport const batchSize=32;\nexport const poseFiles='+JSON.stringify(chunks)+';\nexport const poses=[\n'+entries.map(e=>JSON.stringify(e)).join(',\n')+'\n];\n');
 console.log(entries.length+' poses',Object.fromEntries(Object.entries(Object.groupBy(entries,p=>p.group)).map(([g,a])=>[g,a.length])));

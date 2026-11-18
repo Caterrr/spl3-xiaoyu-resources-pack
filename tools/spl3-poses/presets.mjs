@@ -14,6 +14,36 @@ function nameOf(key){
   if(key.startsWith('Win_'))return key.slice(4).replace(/^Pair00([LR])$/,(_,s)=>'双人胜利 '+(s==='L'?'左':'右')).replace(/^X00([ABCD])$/,'X 比赛 $1').split('_').map(word).join(' ');
   return key.split('_').map(word).join(' ').replace(/^(蹲姿|取暖|发抖|占地斗士|变身|大跳) 00$/,'$1');
 }
+function actionOf({clip,label,group}) {
+  let name=label.replace(/ · (左碰拳|右碰拳|动作中|起始)$/,'');
+  const key=clip.replace(/^amiibo_Pose_|^amiiboPose_|^Emote_/,'');
+  if(key.startsWith('Win')||/^(amiibo_Pose_|Emote_)/.test(clip)){
+    if(/^Win_(?!Pair|Tricol|X00)/.test(key))return ['武器动作',name.replace(/ \d+$/,'')];
+    return [key.startsWith('Win')?'胜利动作':'拍照与表情',name];
+  }
+  if(clip.startsWith('amiibo')){
+    const pose=name.match(/^(站姿|坐姿) (交谈|对战)/);
+    return ['拍照与表情',pose?pose[1]+pose[2]:name.replace(/ (?:起始 )?[BT]$/,'')];
+  }
+  if(group==='宣传造型'||group==='试穿与造型')name=name.split(' · ')[0].replace(/ 起始$/,'');
+  else name=name.replace(/(?: 待机变化| 起始)$/,'').replace(/ (?:\d+[A-Z]?|[A-Z])$/,'');
+  return [group,name];
+}
+
+// Prefer the authored end hold. For actions without one, use the first regular pose in catalog order.
+function representativePoses(entries){
+  const actions=new Map();
+  for(const pose of entries){
+    const [group,label]=actionOf(pose);
+    const transitional=/_FistBump_[LR]$|_StWait$|_St$/.test(pose.clip)||pose.label.includes(' · 动作中');
+    let priority=1;
+    if(pose.clip.endsWith('_EdWait'))priority=0;
+    else if(transitional)priority=2;
+    const previous=actions.get(label);
+    if(!previous||priority<previous.priority)actions.set(label,{priority,pose:{...pose,group,label}});
+  }
+  return Array.from(actions.values(),entry=>entry.pose);
+}
 export function presets(clips) {
   const out=[];
   const add=(group,clip,label,frame,id)=>out.push({id:id||oldIds[clip]||clip+(group==='art'?'@'+frame:''),group:groups[group],clip,label,frame});
@@ -31,7 +61,10 @@ export function presets(clips) {
       const key=clip.slice(6).replace(/_(?:EdWait_FistBump_[LR]|EdWait|StWait)$/,'');
       const group=match?'bump':/^Win_(?!Pair|Tricol|X00)/.test(key)?'weapon':key.startsWith('Win')?'win':'emote';
       const suffix=match?(match[1]==='L'?' · 左碰拳':' · 右碰拳'):clip.endsWith('_StWait')?' · 起始':withHold?' · 动作中':'';
-      add(group,clip,nameOf(key)+suffix,match?middle:clip.endsWith('Wait')?0:middle);
+      let frame=last;
+      if(match||withHold)frame=middle;
+      else if(clip.endsWith('Wait'))frame=0;
+      add(group,clip,nameOf(key)+suffix,frame);
     }else if(/^Test.*[Pp]ose|^Tstance$/.test(clip)){
       const label=clip==='Tstance'?'T 字站姿':clip.endsWith('Wait')?'待机测试':'amiibo 测试 '+clip.match(/\d+/)[0];
       add('test',clip,label,middle);
@@ -58,5 +91,6 @@ export function presets(clips) {
     }
   }
   const order=Object.values(groups);
-  return out.sort((a,b)=>order.indexOf(a.group)-order.indexOf(b.group)||(a.id==='stand'?-1:b.id==='stand'?1:a.label.localeCompare(b.label,'zh-Hans',{numeric:true})));
+  out.sort((a,b)=>order.indexOf(a.group)-order.indexOf(b.group)||(a.id==='stand'?-1:b.id==='stand'?1:a.label.localeCompare(b.label,'zh-Hans',{numeric:true})));
+  return representativePoses(out);
 }
