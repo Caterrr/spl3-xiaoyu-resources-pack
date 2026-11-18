@@ -9,12 +9,12 @@ let DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,hea
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
 const storageKey=gameKey+'-character-v1';
-let previewPose='rest',poseData=null,poseTicket=0,poseFrame=0,poseMenu,loadPreviewPose,setPreviewPose,poseChoices=[];
+let previewPose='rest',poseData=null,poseTicket=0,poseFrame=0,poseMenu,loadPreviewPose,setPreviewPose;
 let wearKind='clothes';
 const wearKey=()=>({clothes:'outfit',bottoms:'bottom'})[wearKind]||wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
 const downloadBlend=$('#download-blend'),dice=$('#randomize-character');
-function updateDownload(){dice.disabled=loading||exporting;downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
+function updateDownload(){dice.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
 function render(){if(renderer&&scene&&camera)renderer.render(scene,camera);}
 function framing(reset=false){
@@ -62,9 +62,9 @@ function transitionToPose(){
   }
   tick(start);
 }
-async function choosePose(id){
+async function choosePose(id,reveal=false){
   const ticket=++poseTicket;
-  poseMenu.select(id);
+  poseMenu.select(id,reveal);
   try{
     const data=await loadPreviewPose(id);
     if(ticket!==poseTicket)return;
@@ -72,37 +72,7 @@ async function choosePose(id){
     if(model&&!loading&&!hasError)transitionToPose();
   }catch(error){
     if(ticket!==poseTicket)return;
-    poseMenu.select(previewPose);downloadStatus.textContent='姿势加载失败，请重新选择。';
-  }
-}
-function pickDifferent(entries,current){
-  const alternatives=entries.filter(entry=>entry.id!==current);
-  if(!alternatives.length)return current;
-  return alternatives[Math.floor(Math.random()*alternatives.length)].id;
-}
-function randomClothes(){
-  if(gameKey!=='spl3')return {outfit:pickDifferent(catalog.outfits,state.outfit)};
-  const wearable=entries=>entries.filter(entry=>supports(entry,state.gender));
-  const outfit=pickDifferent(wearable(catalog.clothes),state.outfit);
-  const flags=wearFlags(catalog,{...state,outfit});
-  const patch={outfit,headgear:pickDifferent(catalog.headgear.filter(entry=>headgearHair(entry,state)!==undefined),state.headgear)};
-  if(!flags.hidePants)patch.bottom=pickDifferent(wearable(catalog.bottoms),state.bottom);
-  if(!flags.integratedShoes)patch.shoes=pickDifferent(wearable(catalog.shoes),state.shoes);
-  return patch;
-}
-async function rollCharacter(){
-  if(dice.disabled)return;
-  if(!poseChoices.length){change(randomClothes());return;}
-  const id=pickDifferent(poseChoices,previewPose);
-  const ticket=++poseTicket,outfitVersion=requestId;
-  try{
-    const data=await loadPreviewPose(id);
-    // A newer pose, outfit edit or reset takes precedence over a pending roll.
-    if(ticket!==poseTicket||outfitVersion!==requestId||exporting)return;
-    previewPose=id;poseData=data;poseMenu.select(id,true);
-    change(randomClothes());
-  }catch(error){
-    if(ticket===poseTicket&&outfitVersion===requestId)downloadStatus.textContent='姿势加载失败，请再掷一次骰子。';
+    poseMenu.select(previewPose,reveal);downloadStatus.textContent='姿势加载失败，请重新选择。';
   }
 }
 function selectedButtons(container,id){for(const b of container.querySelectorAll('button[data-id]'))b.setAttribute('aria-pressed',String(b.dataset.id===String(id)));}
@@ -186,10 +156,17 @@ async function init(){
     const core=await import(profiles[gameKey].core);
     ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearHair,wearFlags,setPreviewPose,loadPreviewPose}=core);
     if(setPreviewPose){
-      poseChoices=core.previewPoses;
-      poseMenu=setupPosePanel($('#panel-pose'),poseChoices,choosePose);
+      const poses=core.previewPoses;
+      poseMenu=setupPosePanel($('#panel-pose'),poses,choosePose);
       $('#tab-pose').hidden=false;
-    }else{dice.title='随机服装';dice.setAttribute('aria-label',dice.title);}
+      if(poses.length>0){
+        dice.hidden=false;
+        dice.addEventListener('click',()=>{
+          const choices=poses.filter(pose=>pose.id!==previewPose);
+          if(choices.length)choosePose(choices[Math.floor(Math.random()*choices.length)].id,true);
+        });
+      }
+    }
     const response=await fetch(profiles[gameKey].catalog);if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
     if(gameKey==='spl3'&&catalog.game!=='spl3'||catalog.game&&catalog.game!==gameKey)throw Error('搭配目录不匹配，请刷新重试');
     $('#wear-categories').hidden=gameKey!=='spl3';
@@ -219,7 +196,6 @@ async function init(){
         event.preventDefault();activateTab(tabs[next]);tabs[next].focus();
       });
     }
-    dice.addEventListener('click',rollCharacter);
     $('#reset-character').addEventListener('click',()=>{
       ++poseTicket;previewPose='rest';poseData=null;poseMenu?.reset();
       state=normalize(DEFAULTS,catalog);persist();hairChoices();browChoices();outfitChoices();sync();rebuild(true);

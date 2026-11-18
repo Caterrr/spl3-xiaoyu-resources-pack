@@ -4,7 +4,7 @@
 .character-stage canvas{display:block;width:100%;height:100%;touch-action:none;outline-offset:-4px}
 .stage-tools{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;gap:12px;pointer-events:none}
 .stage-tools button{pointer-events:auto;background:#171717bb;border:1px solid #555;padding:9px 13px;color:#ddd;font:inherit;font-size:12px;cursor:pointer}
-#randomize-character{display:grid;place-items:center;align-self:stretch;min-width:38px;padding:5px 8px}
+#randomize-character:not([hidden]){display:grid;place-items:center;align-self:stretch;min-width:38px;padding:5px 8px}
 #randomize-character:disabled{opacity:.45;cursor:default}
 .stage-status{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 18px;max-width:90%;background:#111e;text-align:center;font-size:14px;line-height:1.6}
 .stage-status p{margin:0}.stage-status button{margin-top:10px;background:none;border:1px solid var(--accent);color:var(--accent);padding:6px 16px;font:inherit;cursor:pointer}
