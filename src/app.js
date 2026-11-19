@@ -30,11 +30,28 @@ let modelTrigger,activeItem,activeGroup,modelRuntime,modelVersion=0,modelAbort,m
 const metric=(method,...args)=>{try{return window.Spl3Metrics?.[method](...args);}catch{}};
 const runtime=()=>modelRuntime??=import('./vendor/model-viewer.min.js').catch(error=>{modelRuntime=undefined;throw error;});
 const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
-let warmupScheduled=false;
+let warmupScheduled=false,webGLVerified=false;
+function supportsModelPreview(){
+ if(webGLVerified)return true;
+ try{
+  const probe=document.createElement('canvas').getContext('webgl2');
+  if(!probe)return false;
+  probe.getExtension('WEBGL_lose_context')?.loseContext();
+  return webGLVerified=true;
+ }catch{return false;}
+}
+function showStaticModelPreview(item){
+ const image=document.createElement('img');
+ image.className='model-static-preview';
+ image.alt=item.name+' 缩略图';
+ image.addEventListener('error',()=>image.remove(),{once:true});
+ image.src=resourceUrl(item.poster);
+ modelStage.replaceChildren(image);
+}
 function warmupViewer(){
  if(warmupScheduled||navigator.connection?.saveData||/^(slow-)?2g$/.test(navigator.connection?.effectiveType||''))return;
  warmupScheduled=true;
- const warm=()=>{if(!document.hidden&&!modelDialog.open)runtime().catch(()=>{});};
+ const warm=()=>{if(!document.hidden&&!modelDialog.open&&supportsModelPreview())runtime().catch(()=>{});};
  if('requestIdleCallback'in window)requestIdleCallback(warm,{timeout:5000});else setTimeout(warm,1800);
 }
 
@@ -56,6 +73,12 @@ async function loadModel(item){
  try{
   await nextPaint();
   if(signal.aborted||version!==modelVersion||!modelDialog.open)return;
+  if(!supportsModelPreview()){
+   attempt?.error('viewer');
+   showStaticModelPreview(item);
+   showModelError('当前浏览器无法开启三维预览，仍可下载模型');
+   return;
+  }
   let lastProgress=-1;
   const [,blob]=await Promise.all([runtime(),fileRuntime.then(({loadModelFile})=>loadModelFile(item,'glb',{signal,onProgress:fraction=>{
    if(version!==modelVersion)return;
@@ -110,10 +133,10 @@ async function loadModel(item){
   modelStage.append(viewer);
  }catch(error){if(version===modelVersion&&error.name!=='AbortError'){attempt?.error('load');showModelError();}}
 }
-function showModelError(){
+function showModelError(message='预览暂时无法加载，仍可下载模型'){
  window.modelMotion?.ready();
  modelDialog.dataset.state='error';
- modelStatus.textContent='预览暂时无法加载，仍可下载模型';
+ modelStatus.textContent=message;
 }
 function openModel(item,trigger){
  modelTrigger=trigger;activeGroup=item;
