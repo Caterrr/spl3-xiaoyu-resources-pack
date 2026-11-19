@@ -2,7 +2,7 @@ const favoriteIds=['rest','stand','crouch','Emote_WaveHands_EdWait','Emote_BlowK
 const pageSize=8;
 
 export function setupPosePanel(panel,poses,onChoose){
-  const list=panel.querySelector('.pose-list'),search=panel.querySelector('input'),category=panel.querySelector('select');
+  const list=panel.querySelector('.pose-list'),category=panel.querySelector('.pose-category');
   const records=new Map(poses.map(p=>[p.id,p]));
   records.set('rest',{id:'rest',label:'初始姿势',clip:'',group:''});
   const common=favoriteIds.map(id=>records.get(id)).filter(Boolean);
@@ -13,8 +13,6 @@ export function setupPosePanel(panel,poses,onChoose){
 
   function label(pose){return pose.id==='win15'?'斜举手':pose.label;}
   function filtered(){
-    const query=search.value.trim().toLowerCase();
-    if(query)return [...records.values()].filter(p=>[label(p),p.label,p.clip,p.group].join(' ').toLowerCase().includes(query));
     return category.value?poses.filter(p=>p.group===category.value):common;
   }
   function draw(resetScroll=true){
@@ -27,14 +25,13 @@ export function setupPosePanel(panel,poses,onChoose){
     if(rows.length>limit){
       const more=document.createElement('button');more.type='button';more.dataset.more='1';more.textContent='显示更多';fragment.append(more);
     }
-    if(!rows.length){const empty=document.createElement('p');empty.textContent='没有匹配的姿势';fragment.append(empty);}
     const scroll=list.scrollTop;list.replaceChildren(fragment);list.scrollTop=resetScroll?0:scroll;
   }
   function select(id,reveal=false){
     selected=id;
     if(reveal&&!list.querySelector('[data-pose="'+id+'"]')){
       const pose=records.get(id);
-      search.value='';category.value=pose.group;
+      category.value=pose.group;
       const index=filtered().findIndex(p=>p.id===id);
       limit=pageSize*(1+Math.floor(index/pageSize));draw();
     }
@@ -49,8 +46,7 @@ export function setupPosePanel(panel,poses,onChoose){
     else if(row.bottom>box.bottom)list.scrollTop+=row.bottom-box.bottom;
   }
   function firstPage(){limit=pageSize;draw();}
-  search.addEventListener('input',()=>{if(search.value)category.value='';firstPage();});
-  category.addEventListener('change',()=>{search.value='';firstPage();});
+  category.addEventListener('change',firstPage);
   panel.addEventListener('keydown',e=>{
     if(e.target===category||!['ArrowUp','ArrowDown'].includes(e.key))return;
     const buttons=[...list.querySelectorAll('button')];if(!buttons.length)return;
@@ -65,5 +61,5 @@ export function setupPosePanel(panel,poses,onChoose){
     onChoose(button.dataset.pose);
   });
   firstPage();
-  return {select,showSelected,reset(){selected='rest';search.value='';category.value='';firstPage();}};
+  return {select,showSelected,reset(){selected='rest';category.value='';firstPage();}};
 }

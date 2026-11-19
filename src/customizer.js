@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three/build/three.module.min.js';
 import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.js';
-import {setupPosePanel} from './customizer-pose-menu.js?v=182a05f9b48f';
+import {setupPosePanel} from './customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
 const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=d0730188e677'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=820db583589c'}};
@@ -14,7 +14,35 @@ let wearKind='clothes';
 const wearKey=()=>({clothes:'outfit',bottoms:'bottom'})[wearKind]||wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
 const downloadBlend=$('#download-blend'),downloadVRM=$('#download-vrm'),dice=$('#randomize-character');
-function updateDownload(){dice.disabled=downloadVRM.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.identity-fields,.editor-tabs,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+function rollDiceIcon() {
+  const icon = dice.querySelector('svg');
+  for (const previous of icon.getAnimations()) {
+    previous.onfinish = null;
+    previous.cancel();
+  }
+  const faces = [1, 2, 3, 4, 5, 6].filter(face => face !== Number(icon.dataset.face));
+  const next = String(faces[Math.floor(Math.random() * faces.length)]);
+  function land() {
+    icon.dataset.face = next;
+    for (const pip of icon.querySelectorAll('circle')) {
+      pip.setAttribute('visibility', pip.dataset.faces.includes(next) ? 'visible' : 'hidden');
+    }
+  }
+  if (reducedMotion.matches) {
+    land();
+    return;
+  }
+  const roll = icon.animate([
+    {transform: 'rotate(0deg)'},
+    {transform: 'rotate(-12deg)', offset: 0.25},
+    {transform: 'rotate(16deg)', offset: 0.6},
+    {transform: 'rotate(0deg)'}
+  ], {duration: 300, easing: 'ease-in-out'});
+  roll.onfinish = land;
+}
+function updateDownload(){dice.disabled=downloadVRM.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.editor-toolbar,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
 function render(){if(renderer&&scene&&camera)renderer.render(scene,camera);}
 function framing(reset=false){
@@ -78,6 +106,7 @@ async function choosePose(id,reveal=false){
 function selectedButtons(container,id){for(const b of container.querySelectorAll('button[data-id]'))b.setAttribute('aria-pressed',String(b.dataset.id===String(id)));}
 function sync(){
   for(const input of document.querySelectorAll('.identity-options input'))input.checked=input.value===state[input.name];
+  $('#identity-value').textContent = [state.species === 'octopus' ? '章鱼' : '鱿鱼', state.gender === 'male' ? '男' : '女'].join(' · ');
   $('#hair-color').value=state.color;$('#hair-hex').value=state.color;
   selectedButtons($('#hair-choices'),state.hair);selectedButtons($('#outfit-choices'),state[wearKey()]);
   selectedButtons($('#brow-choices'),state.brow);
@@ -152,14 +181,24 @@ async function init(){
         dice.hidden=false;
         dice.addEventListener('click',()=>{
           const choices=poses.filter(pose=>pose.id!==previewPose);
-          if(choices.length)choosePose(choices[Math.floor(Math.random()*choices.length)].id,true);
+          if (choices.length) {
+            choosePose(choices[Math.floor(Math.random() * choices.length)].id, true);
+            rollDiceIcon();
+          }
         });
       }
     }
     const response=await fetch(profiles[gameKey].catalog);if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
     if(gameKey==='spl3'&&catalog.game!=='spl3'||catalog.game&&catalog.game!==gameKey)throw Error('搭配目录不匹配，请刷新重试');
     $('#wear-categories').hidden=gameKey!=='spl3';
-    for(const button of document.querySelectorAll('#wear-categories button'))button.addEventListener('click',()=>{wearKind=button.dataset.kind;for(const b of document.querySelectorAll('#wear-categories button'))b.setAttribute('aria-pressed',String(b===button));outfitChoices();});
+    const wearTabs = document.querySelectorAll('#wear-categories button');
+    for (const button of wearTabs) button.addEventListener('click', () => {
+      if (wearKind === button.dataset.kind) return;
+      wearKind = button.dataset.kind;
+      for (const tab of wearTabs) tab.setAttribute('aria-pressed', String(tab === button));
+      outfitChoices();
+      $('.outfit-scroll').scrollTop = 0;
+    });
     let saved;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
     state=normalize(saved||DEFAULTS,catalog);
     renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.LinearToneMapping;renderer.toneMappingExposure=1;
@@ -177,6 +216,8 @@ async function init(){
     $('#hair-hex').addEventListener('change',e=>{const v=e.target.value.trim();if(/^#[\da-f]{6}$/i.test(v)){e.target.setCustomValidity('');change({color:v});}else{e.target.setCustomValidity('请输入 # 加六位颜色值，例如 #ff5d1c');e.target.reportValidity();}});
     $('#hair-hex').addEventListener('input',e=>e.target.setCustomValidity(''));
     const tabs=[...$('.editor-tabs').querySelectorAll('[role=tab]:not([hidden])')];
+    const initialTab = tabs.find(tab => tab.id === 'tab-' + new URLSearchParams(location.search).get('tab'));
+    if (initialTab) activateTab(initialTab);
     for(const [index,tab] of tabs.entries()){
       tab.addEventListener('click',()=>activateTab(tab));
       tab.addEventListener('keydown',event=>{
@@ -185,7 +226,13 @@ async function init(){
         event.preventDefault();activateTab(tabs[next]);tabs[next].focus();
       });
     }
-    $('#reset-character').addEventListener('click',()=>{
+    $('#reset-character').addEventListener('click',event=>{
+      if (!reducedMotion.matches) {
+        const label = event.currentTarget.querySelector('span');
+        for (const previous of label.getAnimations()) previous.cancel();
+        label.animate([{transform: 'var(--pressed-transform)'}, {transform: 'none'}],
+          {duration: 180, easing: 'ease-out'});
+      }
       ++poseTicket;previewPose='rest';poseData=null;poseMenu?.reset();
       state=normalize(DEFAULTS,catalog);persist();hairChoices();browChoices();outfitChoices();sync();rebuild(true);
     });

@@ -3,26 +3,96 @@
 .character-stage{position:relative;min-width:0;min-height:320px;background:#171717;overflow:hidden;touch-action:pan-y}
 .character-stage canvas{display:block;width:100%;height:100%;touch-action:none;outline-offset:-4px}
 .stage-tools{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;gap:12px;pointer-events:none}
-.stage-tools button{pointer-events:auto;background:#171717bb;border:1px solid #555;padding:9px 13px;color:#ddd;font:inherit;font-size:12px;cursor:pointer}
-#randomize-character:not([hidden]){display:grid;place-items:center;align-self:stretch;min-width:38px;padding:5px 8px}
+.stage-tools button{pointer-events:auto;background:transparent;border:0;padding:10px 14px;color:#ddd;font:inherit;font-size:12px;cursor:pointer}
+.stage-tools button:enabled:active{color:var(--accent)}
+#reset-character span{display:inline-block;--pressed-transform:translateX(-2px) scale(.94)}
+@media(prefers-reduced-motion:no-preference){
+ #reset-character:enabled:active span{transform:var(--pressed-transform)}
+}
+#randomize-character:not([hidden]){display:grid;place-items:center;align-self:stretch;min-width:38px;padding:6px 9px}
 #randomize-character:disabled{opacity:.45;cursor:default}
 .stage-status{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 18px;max-width:90%;background:#111e;text-align:center;font-size:14px;line-height:1.6}
 .stage-status p{margin:0}.stage-status button{margin-top:10px;background:none;border:1px solid var(--accent);color:var(--accent);padding:6px 16px;font:inherit;cursor:pointer}
 .customizer-controls{display:flex;flex-direction:column;min-width:0;min-height:0}
-.identity-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
-.identity-field{min-width:0;margin:0;padding:0;border:0}
-.identity-field legend{padding:0;margin-bottom:8px;color:#999;font-size:12px}
-.identity-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
-.identity-options label{position:relative;display:block;min-width:0;cursor:pointer}
-.identity-options input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
-.identity-options span{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 4px;border:1px solid #393939;background:#111;color:#aaa;font-size:14px;pointer-events:none}
-.identity-options input:checked+span{border-color:var(--accent);background:#231a16;color:#fff}
-.identity-options input:focus-visible+span{outline:2px solid #fff;outline-offset:-4px}
-.editor-tabs{display:flex;border-bottom:1px solid #333;gap:24px;margin-bottom:18px}
-.editor-tabs button{padding:0 0 12px;border:0;border-bottom:2px solid transparent;background:none;color:#999;font:inherit;cursor:pointer}
-.editor-tabs button[aria-selected=true]{color:#fff;border-color:var(--accent)}
-.editor-panel{flex:1;overflow:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#555 transparent;padding:4px 2px 12px}
-.wear-categories{display:flex;gap:20px;margin-bottom:18px}.wear-categories[hidden]{display:none}.wear-categories button{min-height:44px;padding:0;border:0;border-bottom:1px solid transparent;background:none;color:#999;font:inherit;font-size:14px;cursor:pointer;transition:color 240ms var(--ease),border-color 240ms var(--ease)}.wear-categories button[aria-pressed=true]{color:#fff;border-color:var(--accent)}.wear-categories button:hover{color:#fff}.choice-none svg{width:34%;height:34%;margin:auto;fill:none;stroke:#aaa;stroke-width:1.3}
+.editor-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #333;
+}
+.identity-picker {position: relative; flex: none; z-index: 5;}
+.identity-picker .game-menu-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 3px;
+  border: 0;
+  background: none;
+  color: #bbb;
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 260ms var(--ease);
+}
+.identity-picker .game-menu-trigger::after, .editor-tabs button::after, .wear-categories button::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 420ms var(--ease);
+}
+.identity-picker[data-open=true] .game-menu-trigger {color: #fff;}
+.identity-picker[data-open=true] .game-menu-trigger::after {transform: scaleX(1);}
+.identity-picker .game-menu-caret {margin-left: 7px;}
+.identity-picker::before, .identity-picker .identity-fields {
+  left: auto;
+  right: 0;
+  width: 156px;
+}
+.identity-picker[data-open=true]::before {display: block;}
+.identity-picker[data-placement=above]::before {top: auto; bottom: 100%;}
+.identity-picker[data-placement=above] .identity-fields {top: auto; bottom: calc(100% + 6px);}
+.identity-picker .identity-fields {padding: 6px 12px;}
+.identity-options {display: grid; grid-template-columns: repeat(2, 1fr);}
+.identity-options label {display: grid; position: relative; place-items: center; min-height: 44px; cursor: pointer;}
+.identity-options input {position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer;}
+.identity-options span {color: #bbb; font-size: 14px; pointer-events: none; transition: color 260ms var(--ease), transform 440ms var(--ease);}
+.identity-options input:checked + span {color: var(--accent); font-weight: 600;}
+.identity-options label:has(input:focus-visible), .identity-picker button:focus-visible,
+.editor-tabs button:focus-visible, .wear-categories button:focus-visible {outline: 2px solid white; outline-offset: -2px;}
+.editor-tabs{display:flex;align-items:center;min-width:0;overflow-x:auto;scrollbar-width:none;gap:12px}
+.editor-tabs::-webkit-scrollbar{display:none}
+.editor-tabs button, .wear-categories button {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #bbb;
+  font: inherit;
+  cursor: pointer;
+  transition: color 260ms var(--ease);
+}
+.editor-tabs button{flex:none;min-height:44px;font-size:15px}
+.editor-panel{flex:1;overflow:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#555 transparent;padding:12px 0}
+#panel-outfit:not([hidden]){display:flex;flex-direction:column;overflow:hidden}
+.outfit-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:#555 transparent}
+#panel-outfit:has(.wear-categories:not([hidden])){padding-top:0}
+.wear-categories{display:flex;flex:none;gap:16px;margin-bottom:4px}
+.wear-categories[hidden]{display:none}
+.wear-categories button{min-height:40px;font-size:14px}
+.wear-categories button::after{bottom:6px;height:1px}
+.editor-tabs button:is([aria-selected=true],:focus-visible),
+.wear-categories button:is([aria-pressed=true],:focus-visible){color:#fff}
+.editor-tabs button:is([aria-selected=true],:focus-visible)::after,
+.wear-categories button:is([aria-pressed=true],:focus-visible)::after{transform:scaleX(1)}
+.choice-none svg{width:34%;height:34%;margin:auto;fill:none;stroke:#aaa;stroke-width:1.3}
 .choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px 10px}
 .choice-button{position:relative;display:block;min-width:0;aspect-ratio:1;overflow:hidden;border:1px solid transparent;background:#191919;padding:0;cursor:pointer}
 .choice-button img{position:absolute;left:0;top:0;display:block;width:100%;height:100%;object-fit:contain;transition:transform 360ms var(--ease)}
@@ -39,27 +109,36 @@
 .color-inputs{display:flex;align-items:center;gap:12px;margin-top:14px}.color-inputs input{height:40px;border:1px solid #454545;border-radius:0;background:#111;color:#eee}.color-inputs input[type=color]{appearance:none;-webkit-appearance:none;width:44px;padding:5px;cursor:pointer}.color-inputs input[type=color]::-webkit-color-swatch-wrapper{padding:0}.color-inputs input[type=color]::-webkit-color-swatch{border:0;border-radius:0}.color-inputs input[type=color]::-moz-color-swatch{border:0;border-radius:0}.color-inputs input[type=text]{width:108px;padding:8px 10px;font:inherit;font-size:13px}
 .editor-actions{border-top:1px solid #333;padding-top:18px;margin-top:14px}.download-character{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:52px;background:var(--accent);border:1px solid var(--accent);color:#111;padding:12px 18px;font:inherit;font-size:16px;cursor:pointer}.download-character svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.5}.download-character:disabled{opacity:.4;cursor:wait}
 .download-status{font-size:12px;color:#bbb;margin:10px 0 0;line-height:1.5}.download-status:empty{display:none}
-.stage-tools button,.stage-status button,.editor-tabs button,.choice-button,.identity-options span,.color-inputs input,.download-character{transition:color 240ms var(--ease),background-color 240ms var(--ease),border-color 240ms var(--ease),opacity 240ms var(--ease)}
+.stage-tools button,.stage-status button,.choice-button,.color-inputs input,.download-character{transition:color 240ms var(--ease),background-color 240ms var(--ease),border-color 240ms var(--ease),opacity 240ms var(--ease)}
 .download-character svg{transition:transform 360ms var(--ease)}
 .color-inputs input:focus-visible{border-color:var(--accent);outline:1px solid var(--accent);outline-offset:-3px}
 @media(hover:hover) and (pointer:fine){
- .stage-tools button:not(:disabled):hover,.stage-status button:hover{background:#292929;border-color:#888;color:#fff}
- .editor-tabs button:hover{color:#fff}
- .editor-tabs button:not([aria-selected=true]):hover{border-bottom-color:#666}
+ .editor-tabs button:hover,.wear-categories button:hover{color:#fff}
+ .editor-tabs button:hover::after,.wear-categories button:hover::after{transform:scaleX(1)}
+ .stage-tools button:not(:disabled):hover{color:var(--accent)}
+ .stage-status button:hover{background:#292929;border-color:#888;color:#fff}
  .choice-button:hover{background:#222}
  .choice-button:not([aria-pressed=true]):hover{border-color:#777}
  .choice-button:hover img{transform:scale(1.035)}
- .identity-options label:hover input:not(:checked)+span{border-color:#777;background:#1c1c1c;color:#fff}
- .identity-options label:hover input:checked+span{background:#32221c}
+ .identity-options label:hover span{transform:translateX(4px)}
+ .identity-options label:hover input:not(:checked)+span{color:#fff}
  .color-inputs input:not(:focus-visible):hover{border-color:#888}
  .swatch:hover::before{transform:scale(1.06);border-color:#ddd}
  .download-character:not(:disabled):hover{background-color:#ff743c;border-color:#ff743c}
  .download-character:not(:disabled):hover svg{transform:translateY(2px)}
 }
-@media(prefers-reduced-motion:reduce){.choice-button img,.swatch::before,.swatch::after,.download-character svg{transform:none!important}}
+@media(prefers-reduced-motion:reduce){.identity-options label:hover span,.choice-button img,.swatch::before,.swatch::after,.download-character svg{transform:none!important}}
 @media(max-width:1050px){.customizer-layout{grid-template-columns:minmax(0,1fr) 300px;gap:24px}.customizer-page .container{padding-inline:28px}}
-@media(max-width:740px){.customizer-page .container{padding-inline:20px}.customizer-layout{height:auto;max-height:none;grid-template-columns:1fr;gap:24px}.character-stage{height:55svh;min-height:330px;max-height:570px}.customizer-controls{min-height:460px}.editor-panel{max-height:350px;min-height:200px}.choices{grid-template-columns:repeat(4,minmax(0,1fr))}.editor-actions{padding-bottom:env(safe-area-inset-bottom)}.identity-fields{margin-bottom:20px}}
+@media(max-width:740px){.customizer-page .container{padding-inline:20px}.customizer-layout{height:auto;max-height:none;grid-template-columns:1fr;gap:24px}.character-stage{height:55svh;min-height:330px;max-height:570px}.customizer-controls{min-height:460px}.editor-panel{max-height:350px;min-height:200px}.choices{grid-template-columns:repeat(4,minmax(0,1fr))}.editor-actions{padding-bottom:env(safe-area-inset-bottom)}}
 @media(max-width:390px){.choices{grid-template-columns:repeat(3,minmax(0,1fr))}.customizer-page .container{padding-inline:16px}}
+
+@media (min-width:640px) and (max-height:520px) and (orientation:landscape) {
+  .customizer-layout {grid-template-columns: minmax(0, 1fr) min(46%, 300px); gap: 16px; height: max(320px, calc(100svh - 16px)); min-height: 0;}
+  .character-stage {height: auto; min-height: 0; max-height: none;}
+  .customizer-controls, .editor-panel {min-height: 0;}
+  .editor-panel {max-height: none;}
+  .choices:not(.brow-choices) {grid-template-columns: repeat(3, minmax(0, 1fr));}
+}
 
 .editor-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .editor-actions .download-status{grid-column:1/-1}
@@ -68,11 +147,8 @@
 :is(#download-character,#download-vrm):not(:disabled):hover{border-color:var(--accent)}
 #panel-pose:not([hidden]){display:flex;flex-direction:column;overflow:hidden;font-size:14px}
 .editor-tabs button{white-space:nowrap}
-.pose-filters{display:flex;gap:8px;flex:none;margin-bottom:10px}
-.pose-filters input,.pose-filters select{min-width:0;height:36px;color:#eee;background:#202020;color-scheme:dark;border:1px solid #555;padding:0 8px;font:inherit;font-size:13px}
-.pose-filters input{flex:1}.pose-filters select{max-width:48%}
+.pose-category{align-self:flex-start;flex:none;max-width:100%;min-height:36px;margin-bottom:10px;padding:0 8px;border:1px solid #555;background:#202020;color:#eee;color-scheme:dark;font:inherit;font-size:13px}
 .pose-list{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#555 transparent;padding:0 0 6px}
-.pose-list p{margin:0;padding:12px 8px 4px;color:#aaa;font-size:12px}
 .pose-list button{width:100%;min-height:36px;padding:7px 9px;text-align:left;background:transparent;border:0;border-left:2px solid transparent;color:#ccc;cursor:pointer;font:inherit;transition:color 240ms var(--ease),background-color 240ms var(--ease),padding-left 360ms var(--ease)}
 .pose-list button[aria-pressed=true]{color:#fff;background:#30231d;border-left-color:var(--accent)}
 #panel-pose :focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
@@ -81,8 +157,6 @@
 @media(max-width:390px){#download-blend{padding-inline:4px;font-size:13px}}
 
 .pose-list button[data-more]{color:var(--accent)}
-.pose-filters select[hidden]{display:none}
 
 @media(prefers-reduced-motion:no-preference){#panel-pose:not([hidden]){animation:pose-panel-in 260ms var(--ease) both}}
 @keyframes pose-panel-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-@media(max-width:390px){.editor-tabs{gap:clamp(12px,5vw,24px)}}

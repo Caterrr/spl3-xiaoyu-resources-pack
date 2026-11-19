@@ -17,13 +17,18 @@
   }
 
   function visibleItems(control) {
-    return [...control.panel.querySelectorAll('a, .gear-menu-trigger')].filter(item =>
+    return [...control.panel.querySelectorAll('a, .gear-menu-trigger, input:checked')].filter(item =>
       !item.closest('.gear-subnavigation') || item.closest('.gear-menu').dataset.open === 'true');
   }
 
   function setOpen(control, open) {
     clearTimeout(control.closeTimer);
     if (open) controls.filter(other => other !== control).forEach(other => setOpen(other, false));
+    if (open && control.menu.classList.contains('identity-picker')) {
+      const trigger = control.trigger.getBoundingClientRect();
+      const below = window.innerHeight - trigger.bottom;
+      control.menu.dataset.placement = below < control.panel.offsetHeight + 12 && trigger.top > below ? 'above' : 'below';
+    }
     control.menu.dataset.open = String(open);
     control.trigger.setAttribute('aria-expanded', String(open));
     control.panel.inert = !open;
@@ -36,6 +41,7 @@
     const gameKey = customizerPage ? (params.get('game') === 'spl3' ? 'spl3' : 'raiders') : params.get('game') || 'spl3';
     const section = customizerPage ? 'customizer' : params.get('section') || (gameKey === 'spl3' ? 'new' : 'weapons');
     for (const control of controls) {
+      if (!control.menu.hasAttribute('data-game')) continue;
       const active = libraryPage && control.menu.dataset.game === gameKey;
       control.menu.dataset.active = String(active);
       if (active) control.trigger.setAttribute('aria-current', 'true');
@@ -100,7 +106,7 @@
         event.preventDefault();
         setOpen(control, false);
         trigger.focus({preventScroll: true});
-      } else if (panel.contains(event.target) && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      } else if (panel.contains(event.target) && !event.target.matches('input[type=radio]') && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
         event.preventDefault();
         const choices = visibleItems(control);
         const index = choices.indexOf(document.activeElement);
