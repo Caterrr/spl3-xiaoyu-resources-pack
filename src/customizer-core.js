@@ -5,7 +5,10 @@ import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
 import {restoreExportPose} from './customizer-spl3-poses.js?v=7800c405309e';
 export {previewPoses,loadPreviewPose,setPreviewPose} from './customizer-spl3-poses.js?v=7800c405309e';
 
-export const DEFAULTS = Object.freeze({species:'squid',gender:'female',hair:'Har_SQD001_F',brow:1,outfit:'Clt_AGL001',eye:0,color:'#ff5d1c'});
+// Nine tones sampled from the game's skin icons, light to dark. Depth is one luminance scale, so the texture keeps its hue. The fourth matches the baked body and copies it unchanged.
+export const SKIN_TONES=['#ded6d4','#e6d2bf','#e8bdaf','#e0b08f','#dda084','#b37e5a','#8e6448','#584d44','#423732'];
+export const SKIN_DEFAULT=3;
+export const DEFAULTS = Object.freeze({species:'squid',gender:'female',hair:'Har_SQD001_F',brow:1,outfit:'Clt_AGL001',eye:0,skin:SKIN_DEFAULT,color:'#ff5d1c'});
 export function normalize(input, catalog) {
   const s={...DEFAULTS,...input};
   if(!['squid','octopus'].includes(s.species))s.species=DEFAULTS.species;
@@ -15,8 +18,9 @@ export function normalize(input, catalog) {
   if(!catalog.outfits.some(x=>x.id===s.outfit))s.outfit=DEFAULTS.outfit;
   s.eye=Number.isInteger(Number(s.eye))?Math.max(0,Math.min(20,Number(s.eye))):0;
   s.brow=Number.isInteger(Number(s.brow))?Math.max(0,Math.min(3,Number(s.brow))):DEFAULTS.brow;
+  s.skin=Number.isInteger(Number(s.skin))?Math.max(0,Math.min(SKIN_TONES.length-1,Number(s.skin))):SKIN_DEFAULT;
   if(!/^#[\da-f]{6}$/i.test(s.color))s.color=DEFAULTS.color;
-  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,eye:s.eye,color:s.color.toLowerCase()};
+  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,eye:s.eye,skin:s.skin,color:s.color.toLowerCase()};
 }
 export function avatarId(s){return 'Player0'+(Number(s.species==='octopus')*2+Number(s.gender==='male'));}
 export function browId(s){return `Eyb_${s.species==='octopus'?'OCT':'SQD'}00${s.brow}_${s.gender==='male'?'M':'F'}`;}
@@ -85,6 +89,34 @@ function replaceMap(material,canvas){const previous=material.map;const map=previ
 
 const linear=Float32Array.from({length:256},(_,i)=>{const c=i/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;});
 function srgb(c){return Math.round(Math.min(1,Math.max(0,c<=.0031308?12.92*c:1.055*c**(1/2.4)-.055))*255);}
+
+function luminance(hex){
+  const rgb=[1,3,5].map(i=>linear[parseInt(hex.slice(i,i+2),16)]);
+  return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];
+}
+function skinScale(index){
+  const tone=SKIN_TONES[index]||SKIN_TONES[SKIN_DEFAULT],reference=luminance(SKIN_TONES[SKIN_DEFAULT]);
+  return reference?luminance(tone)/reference:1;
+}
+export function prepareSkin(meshes){
+  const mats=new Set();
+  for(const mesh of meshes)for(const material of mesh?.material?(Array.isArray(mesh.material)?mesh.material:[mesh.material]):[])if(material.map&&!material.userData.tintBlack)mats.add(material);
+  return [...mats].map(material=>{
+    const shot=canvasImage(material.map.image),source=new Uint8ClampedArray(shot.pixels.data);
+    replaceMap(material,shot.canvas);
+    return {material,source,...shot};
+  });
+}
+export function tintSkin(skins,index){
+  if(!skins)return;
+  const scale=skinScale(index),same=Math.abs(scale-1)<1e-6;
+  for(const skin of skins){
+    const d=skin.pixels.data,src=skin.source;
+    if(same)d.set(src);
+    else for(let i=0;i<d.length;i+=4){for(let c=0;c<3;c++)d[i+c]=srgb(linear[src[i+c]]*scale);d[i+3]=src[i+3];}
+    skin.ctx.putImageData(skin.pixels,0,0);skin.material.map.needsUpdate=true;
+  }
+}
 export async function prepareTints(root){
   const mats=new Set();root.traverse(o=>{for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[])if(m.userData.tintBlack)mats.add(m);});
   return Promise.all([...mats].map(async material=>{
@@ -121,8 +153,9 @@ export async function assemble(catalog,state){
     const eyeImages=await Promise.all(body.scene.userData.eyes.map(image));
     const eyeCanvas=canvasImage(eyeImages[state.eye]);replaceMap(roles.eye.material,eyeCanvas.canvas);
     const tints=await prepareTints(character);tint(tints,state.color);
+    const skins=prepareSkin([roles.body,roles.face,roles.faceNoEars]);tintSkin(skins,state.skin);
     character.updateMatrixWorld(true);
-    return {game:'raiders',character,rig,tints,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state}};
+    return {game:'raiders',character,rig,tints,skins,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state}};
   }catch(e){dispose(character);if(!wear.scene.parent)dispose(wear.scene);if(!brow.scene.parent)dispose(brow.scene);if(hair&&!hair.scene.parent)dispose(hair.scene);throw e;}
 }
 export function setEye(model,index){const {canvas,ctx}=model.eyeCanvas;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(model.eyeImages[index],0,0,canvas.width,canvas.height);model.eyeMaterial.map.needsUpdate=true;model.state.eye=index;}

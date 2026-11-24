@@ -3,8 +3,8 @@ import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.
 import {setupPosePanel} from './customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=d0730188e677'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=820db583589c'}};
-let DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
+const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=6bed4c7264f7'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=10d310c911b6'}};
+let DEFAULTS,normalize,assemble,dispose,tint,tintSkin,setEye,exportCharacter,supports,headgearAvailable,wearFlags,SKIN_TONES;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
@@ -110,7 +110,7 @@ function sync(){
   $('#hair-color').value=state.color;$('#hair-hex').value=state.color;
   selectedButtons($('#hair-choices'),state.hair);selectedButtons($('#outfit-choices'),state[wearKey()]);
   selectedButtons($('#brow-choices'),state.brow);
-  selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
+  selectedButtons($('#skin-swatches'),state.skin);selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
   if(gameKey==='spl3'){
     const flags=wearFlags(catalog,state);
     const blocked=wearKind==='shoes'&&flags.integratedShoes?'这套衣服自带鞋子，换下后恢复所选鞋子。'
@@ -150,7 +150,7 @@ async function rebuild(resetView=false){
     const next=await assemble(catalog,requested);
     if(ticket!==requestId){dispose(next.character);return;}
     // Colour changes during a model load apply to the newest selected values.
-    tint(next.tints,state.color);setEye(next,state.eye);next.state={...state};
+    tint(next.tints,state.color);tintSkin(next.skins,state.skin);setEye(next,state.eye);next.state={...state};
     if(setPreviewPose && previewPose!=='rest')setPreviewPose(next,poseData);
     const previous=model;model=next;scene.add(model.character);if(previous){scene.remove(previous.character);dispose(previous.character);}
     showStatus('');loading=false;hasError=false;updateDownload();fitCamera(resetView||!previous);
@@ -162,7 +162,7 @@ function change(patch){
   if(gameKey==='spl3'&&['species','gender','hair'].some(k=>state[k]!==previous[k]))outfitChoices();
   if(previous.species!==state.species||previous.gender!==state.gender)browChoices();sync();
   if(['species','gender','hair','brow','outfit','bottom','headgear','shoes'].some(k=>state[k]!==previous[k])){rebuild();return;}
-  if(model&&!loading&&!hasError){if(previous.color!==state.color)tint(model.tints,state.color);if(previous.eye!==state.eye)setEye(model,state.eye);model.state={...state};render();}
+  if(model&&!loading&&!hasError){if(previous.color!==state.color)tint(model.tints,state.color);if(previous.skin!==state.skin)tintSkin(model.skins,state.skin);if(previous.eye!==state.eye)setEye(model,state.eye);model.state={...state};render();}
 }
 function activateTab(tab){
   for(const button of document.querySelectorAll('[role=tab]')){const active=button===tab;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;$('#'+button.getAttribute('aria-controls')).hidden=!active;}
@@ -172,7 +172,7 @@ async function init(){
   try{
     document.documentElement.dataset.game=gameKey;document.title='奇迹鱿鱿 · '+gameName;
     const core=await import(profiles[gameKey].core);
-    ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags,setPreviewPose,loadPreviewPose}=core);
+    ({DEFAULTS,normalize,assemble,dispose,tint,tintSkin,setEye,exportCharacter,supports,headgearAvailable,wearFlags,SKIN_TONES,setPreviewPose,loadPreviewPose}=core);
     if(setPreviewPose){
       const poses=core.previewPoses;
       poseMenu=setupPosePanel($('#panel-pose'),poses,choosePose);
@@ -209,6 +209,7 @@ async function init(){
     controls.addEventListener('start',()=>{if(poseFrame){cancelPoseMotion();setPreviewPose(model,poseData);render();}});
     new ResizeObserver(()=>{const r=stage.getBoundingClientRect();camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);fitCamera();}).observe(stage);
     fitCamera(true);hairChoices();browChoices();outfitChoices();
+    swatches($('#skin-swatches'),SKIN_TONES.map((color,i)=>({id:String(i),color,name:'肤色 '+(i+1)})),skin=>change({skin:Number(skin)}));
     swatches($('#hair-swatches'),['#ff5d1c','#f5cc26','#a5d83d','#25b89a','#3587ed','#6147d4','#b546da','#ef68ae','#eeeeee','#222222'].map(x=>({id:x,color:x,name:x})),color=>change({color}));
     swatches($('#eye-swatches'),catalog.eyes.map((x,i)=>({...x,id:String(i)})),eye=>change({eye:Number(eye)}));sync();
     for(const input of document.querySelectorAll('.identity-options input'))input.addEventListener('change',()=>{if(input.checked)change({[input.name]:input.value});});
