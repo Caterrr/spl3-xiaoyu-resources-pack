@@ -233,11 +233,18 @@ async function init(){
     for (const [prefix, key] of [['hair','color'], ['skin','skinColor']]) {
       const picker = $('#' + prefix + '-color'), hex = $('#' + prefix + '-hex');
       picker.addEventListener('input', () => change({[key]:picker.value}));
-      hex.addEventListener('input', () => hex.setCustomValidity(''));
+      function applyHex() {
+        const color = hex.value.trim().toLowerCase();
+        if (!/^#[0-9a-f]{6}$/.test(color)) return false;
+        if (color !== state[key]) change({[key]:color});
+        return true;
+      }
+      hex.addEventListener('input', () => {
+        hex.setCustomValidity('');
+        applyHex();
+      });
       hex.addEventListener('change', () => {
-        const color = hex.value.trim();
-        if (/^#[0-9a-f]{6}$/i.test(color)) change({[key]:color});
-        else {
+        if (!applyHex()) {
           hex.setCustomValidity('请输入 # 加六位颜色值，例如 ' + picker.value);
           hex.reportValidity();
         }
