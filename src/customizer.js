@@ -3,8 +3,8 @@ import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.
 import {setupPosePanel} from './customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=d0730188e677'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=820db583589c'}};
-let DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
+const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=802161046a03'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=9ca9431a9a6d'}};
+let DEFAULTS,SKIN_PRESETS,setSkinColor,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
@@ -104,13 +104,22 @@ async function choosePose(id,reveal=false){
   }
 }
 function selectedButtons(container,id){for(const b of container.querySelectorAll('button[data-id]'))b.setAttribute('aria-pressed',String(b.dataset.id===String(id)));}
+function syncColors(){
+  for (const [prefix, color] of [['hair',state.color], ['skin',state.skinColor]]) {
+    const hex = $('#' + prefix + '-hex');
+    $('#' + prefix + '-color').value = hex.value = color;
+    hex.setCustomValidity('');
+  }
+  selectedButtons($('#skin-swatches'),state.skinColor);
+  selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
+}
 function sync(){
   for(const input of document.querySelectorAll('.identity-options input'))input.checked=input.value===state[input.name];
   $('#identity-value').textContent = [state.species === 'octopus' ? '章鱼' : '鱿鱼', state.gender === 'male' ? '男' : '女'].join(' · ');
-  $('#hair-color').value=state.color;$('#hair-hex').value=state.color;
+  syncColors();
   selectedButtons($('#hair-choices'),state.hair);selectedButtons($('#outfit-choices'),state[wearKey()]);
   selectedButtons($('#brow-choices'),state.brow);
-  selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
+
   if(gameKey==='spl3'){
     const flags=wearFlags(catalog,state);
     const blocked=wearKind==='shoes'&&flags.integratedShoes?'这套衣服自带鞋子，换下后恢复所选鞋子。'
@@ -150,7 +159,7 @@ async function rebuild(resetView=false){
     const next=await assemble(catalog,requested);
     if(ticket!==requestId){dispose(next.character);return;}
     // Colour changes during a model load apply to the newest selected values.
-    tint(next.tints,state.color);setEye(next,state.eye);next.state={...state};
+    tint(next.tints,state.color);setEye(next,state.eye);setSkinColor(next.skin,state.skinColor);next.state={...state};
     if(setPreviewPose && previewPose!=='rest')setPreviewPose(next,poseData);
     const previous=model;model=next;scene.add(model.character);if(previous){scene.remove(previous.character);dispose(previous.character);}
     showStatus('');loading=false;hasError=false;updateDownload();fitCamera(resetView||!previous);
@@ -158,11 +167,19 @@ async function rebuild(resetView=false){
 }
 function change(patch){
   const previous={...state};state=normalize({...state,...patch},catalog);persist();
-  if(previous.species!==state.species||gameKey==='spl3'&&previous.gender!==state.gender)hairChoices();
-  if(gameKey==='spl3'&&['species','gender','hair'].some(k=>state[k]!==previous[k]))outfitChoices();
-  if(previous.species!==state.species||previous.gender!==state.gender)browChoices();sync();
-  if(['species','gender','hair','brow','outfit','bottom','headgear','shoes'].some(k=>state[k]!==previous[k])){rebuild();return;}
-  if(model&&!loading&&!hasError){if(previous.color!==state.color)tint(model.tints,state.color);if(previous.eye!==state.eye)setEye(model,state.eye);model.state={...state};render();}
+  if(['species','gender','hair','brow','outfit','bottom','headgear','shoes'].some(k=>state[k]!==previous[k])){
+    if(previous.species!==state.species||gameKey==='spl3'&&previous.gender!==state.gender)hairChoices();
+    if(gameKey==='spl3'&&['species','gender','hair'].some(k=>state[k]!==previous[k]))outfitChoices();
+    if(previous.species!==state.species||previous.gender!==state.gender)browChoices();
+    sync();rebuild();return;
+  }
+  syncColors();
+  if(model&&!loading&&!hasError){
+    if(previous.color!==state.color)tint(model.tints,state.color);
+    if(previous.eye!==state.eye)setEye(model,state.eye);
+    if(previous.skinColor!==state.skinColor)setSkinColor(model.skin,state.skinColor);
+    model.state={...state};render();
+  }
 }
 function activateTab(tab){
   for(const button of document.querySelectorAll('[role=tab]')){const active=button===tab;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;$('#'+button.getAttribute('aria-controls')).hidden=!active;}
@@ -172,7 +189,7 @@ async function init(){
   try{
     document.documentElement.dataset.game=gameKey;document.title='奇迹鱿鱿 · '+gameName;
     const core=await import(profiles[gameKey].core);
-    ({DEFAULTS,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags,setPreviewPose,loadPreviewPose}=core);
+    ({DEFAULTS,SKIN_PRESETS,setSkinColor,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags,setPreviewPose,loadPreviewPose}=core);
     if(setPreviewPose){
       const poses=core.previewPoses;
       poseMenu=setupPosePanel($('#panel-pose'),poses,choosePose);
@@ -210,11 +227,22 @@ async function init(){
     new ResizeObserver(()=>{const r=stage.getBoundingClientRect();camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);fitCamera();}).observe(stage);
     fitCamera(true);hairChoices();browChoices();outfitChoices();
     swatches($('#hair-swatches'),['#ff5d1c','#f5cc26','#a5d83d','#25b89a','#3587ed','#6147d4','#b546da','#ef68ae','#eeeeee','#222222'].map(x=>({id:x,color:x,name:x})),color=>change({color}));
+    swatches($('#skin-swatches'),SKIN_PRESETS.map((color,i)=>({id:color,color,name:'肤色 '+(i+1)})),skinColor=>change({skinColor}));
     swatches($('#eye-swatches'),catalog.eyes.map((x,i)=>({...x,id:String(i)})),eye=>change({eye:Number(eye)}));sync();
     for(const input of document.querySelectorAll('.identity-options input'))input.addEventListener('change',()=>{if(input.checked)change({[input.name]:input.value});});
-    $('#hair-color').addEventListener('input',e=>change({color:e.target.value}));
-    $('#hair-hex').addEventListener('change',e=>{const v=e.target.value.trim();if(/^#[\da-f]{6}$/i.test(v)){e.target.setCustomValidity('');change({color:v});}else{e.target.setCustomValidity('请输入 # 加六位颜色值，例如 #ff5d1c');e.target.reportValidity();}});
-    $('#hair-hex').addEventListener('input',e=>e.target.setCustomValidity(''));
+    for (const [prefix, key] of [['hair','color'], ['skin','skinColor']]) {
+      const picker = $('#' + prefix + '-color'), hex = $('#' + prefix + '-hex');
+      picker.addEventListener('input', () => change({[key]:picker.value}));
+      hex.addEventListener('input', () => hex.setCustomValidity(''));
+      hex.addEventListener('change', () => {
+        const color = hex.value.trim();
+        if (/^#[0-9a-f]{6}$/i.test(color)) change({[key]:color});
+        else {
+          hex.setCustomValidity('请输入 # 加六位颜色值，例如 ' + picker.value);
+          hex.reportValidity();
+        }
+      });
+    }
     const tabs=[...$('.editor-tabs').querySelectorAll('[role=tab]:not([hidden])')];
     const initialTab = tabs.find(tab => tab.id === 'tab-' + new URLSearchParams(location.search).get('tab'));
     if (initialTab) activateTab(initialTab);
