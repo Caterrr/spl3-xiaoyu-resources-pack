@@ -1,13 +1,13 @@
 import * as THREE from './vendor/three/build/three.module.min.js';
 import {GLTFExporter} from './vendor/three/examples/jsm/exporters/GLTFExporter.js';
 import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
-import {loadAsset,joinAsset,prepareTints,dispose,tint,setEye,SKIN_PRESETS,normalizeSkin,prepareSkin,setSkinColor} from './customizer-core.js?v=802161046a03';
+import {loadAsset,joinAsset,prepareTints,dispose,tint,setEye,SKIN_PRESETS,BASE_SKIN,normalizeSkinSelection,restoreSkinSave,prepareSkin,setSkinColor} from './customizer-core.js?v=29bd5c9b69f2';
 import {loadHeadgearFit,applyHeadgearFit} from './customizer-spl3-headgear.js?v=6c9cbd7b61c5';
 import {restoreExportPose} from './customizer-spl3-poses.js?v=7800c405309e';
 export {previewPoses,loadPreviewPose,setPreviewPose} from './customizer-spl3-poses.js?v=7800c405309e';
-export {dispose,tint,setEye,SKIN_PRESETS,setSkinColor};
+export {dispose,tint,setEye,SKIN_PRESETS,setSkinColor,restoreSkinSave};
 
-export const DEFAULTS=Object.freeze({species:'squid',gender:'female',hair:'spl3:Har_SQD001',brow:1,outfit:'spl3:Clt_TES000',bottom:'spl3:Btm_000',headgear:'spl3:none:headgear',shoes:'spl3:Shs_SDL000',eye:0,color:'#ff5d1c',skinColor:SKIN_PRESETS[3]});
+export const DEFAULTS=Object.freeze({species:'squid',gender:'female',hair:'spl3:Har_SQD001',brow:1,outfit:'spl3:Clt_TES000',bottom:'spl3:Btm_000',headgear:'spl3:none:headgear',shoes:'spl3:Shs_SDL000',eye:0,color:'#ff5d1c',skinColor:BASE_SKIN,skinPreset:null});
 export function avatarId(s){return 'spl3:Player0'+(Number(s.species==='octopus')*2+Number(s.gender==='male'));}
 export function browId(s){return `spl3:Eyb_${s.species==='octopus'?'OCT':'SQD'}00${s.brow}_${s.gender==='male'?'M':'F'}`;}
 export function supports(entry,gender){return !!entry&&(entry.empty||!!entry.variants?.[gender]);}
@@ -32,7 +32,7 @@ export function normalize(input,catalog){
   s.eye=Number.isInteger(Number(s.eye))?Math.max(0,Math.min(catalog.eyes.length-1,Number(s.eye))):0;
   s.brow=Number.isInteger(Number(s.brow))&&Number(s.brow)>=0&&Number(s.brow)<=3?Number(s.brow):DEFAULTS.brow;
   if(!/^#[\da-f]{6}$/i.test(s.color))s.color=DEFAULTS.color;
-  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,bottom:s.bottom,headgear:s.headgear,shoes:s.shoes,eye:s.eye,color:s.color.toLowerCase(),skinColor:normalizeSkin(input?.skinColor)};
+  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,bottom:s.bottom,headgear:s.headgear,shoes:s.shoes,eye:s.eye,color:s.color.toLowerCase(),...normalizeSkinSelection(input)};
 }
 export function wearFlags(catalog,s){return catalog.clothes.find(e=>e.id===s.outfit)?.variants?.[s.gender]?.flags||{};}
 function rigOf(scene){let found;scene.traverse(o=>{if(o.userData.canonicalRig)found=o;});if(!found)throw Error('角色骨骼缺失');return found;}
@@ -83,7 +83,7 @@ export async function assemble(catalog,input){
     await maskBody(roles.body,masks);
     const eyeImages=await Promise.all(assets.body.scene.userData.eyes.map(image));
     const eyeCanvas=canvasImage(eyeImages[state.eye],Math.max(...eyeImages.map(im=>im.width)),Math.max(...eyeImages.map(im=>im.height)));replaceMap(roles.eye.material,eyeCanvas.canvas);
-    const skin=prepareSkin(assets.body.scene);setSkinColor(skin,state.skinColor);
+    const skin=await prepareSkin(assets.body.scene,state,'spl3');setSkinColor(skin,state.skinColor,state.skinPreset);
     const tints=await prepareTints(character);tint(tints,state.color);character.updateMatrixWorld(true);
     return {game:'spl3',character,rig,tints,skin,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state},flags};
   }catch(error){dispose(character);for(const asset of Object.values(assets))if(!asset.scene.parent)dispose(asset.scene);throw error;}

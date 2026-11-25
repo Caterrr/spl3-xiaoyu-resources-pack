@@ -3,8 +3,8 @@ import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.
 import {setupPosePanel} from './customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=802161046a03'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=9ca9431a9a6d'}};
-let DEFAULTS,SKIN_PRESETS,setSkinColor,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
+const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=29bd5c9b69f2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=34174bde4d5b'}};
+let DEFAULTS,SKIN_PRESETS,setSkinColor,restoreSkinSave,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
@@ -110,7 +110,7 @@ function syncColors(){
     $('#' + prefix + '-color').value = hex.value = color;
     hex.setCustomValidity('');
   }
-  selectedButtons($('#skin-swatches'),state.skinColor);
+  selectedButtons($('#skin-swatches'),state.skinPreset);
   selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
 }
 function sync(){
@@ -159,13 +159,14 @@ async function rebuild(resetView=false){
     const next=await assemble(catalog,requested);
     if(ticket!==requestId){dispose(next.character);return;}
     // Colour changes during a model load apply to the newest selected values.
-    tint(next.tints,state.color);setEye(next,state.eye);setSkinColor(next.skin,state.skinColor);next.state={...state};
+    tint(next.tints,state.color);setEye(next,state.eye);setSkinColor(next.skin,state.skinColor,state.skinPreset);next.state={...state};
     if(setPreviewPose && previewPose!=='rest')setPreviewPose(next,poseData);
     const previous=model;model=next;scene.add(model.character);if(previous){scene.remove(previous.character);dispose(previous.character);}
     showStatus('');loading=false;hasError=false;updateDownload();fitCamera(resetView||!previous);
   }catch(e){if(ticket!==requestId)return;loading=false;hasError=true;showStatus(e.message||'搭配加载失败，请重试',true);updateDownload();}
 }
 function change(patch){
+  if ('skinColor' in patch && !('skinPreset' in patch)) patch={...patch,skinPreset:null};
   const previous={...state};state=normalize({...state,...patch},catalog);persist();
   if(['species','gender','hair','brow','outfit','bottom','headgear','shoes'].some(k=>state[k]!==previous[k])){
     if(previous.species!==state.species||gameKey==='spl3'&&previous.gender!==state.gender)hairChoices();
@@ -177,7 +178,7 @@ function change(patch){
   if(model&&!loading&&!hasError){
     if(previous.color!==state.color)tint(model.tints,state.color);
     if(previous.eye!==state.eye)setEye(model,state.eye);
-    if(previous.skinColor!==state.skinColor)setSkinColor(model.skin,state.skinColor);
+    if(previous.skinColor!==state.skinColor||previous.skinPreset!==state.skinPreset)setSkinColor(model.skin,state.skinColor,state.skinPreset);
     model.state={...state};render();
   }
 }
@@ -189,7 +190,7 @@ async function init(){
   try{
     document.documentElement.dataset.game=gameKey;document.title='奇迹鱿鱿 · '+gameName;
     const core=await import(profiles[gameKey].core);
-    ({DEFAULTS,SKIN_PRESETS,setSkinColor,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags,setPreviewPose,loadPreviewPose}=core);
+    ({DEFAULTS,SKIN_PRESETS,setSkinColor,restoreSkinSave,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags,setPreviewPose,loadPreviewPose}=core);
     if(setPreviewPose){
       const poses=core.previewPoses;
       poseMenu=setupPosePanel($('#panel-pose'),poses,choosePose);
@@ -217,7 +218,7 @@ async function init(){
       $('.outfit-scroll').scrollTop = 0;
     });
     let saved;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
-    state=normalize(saved||DEFAULTS,catalog);
+    state=normalize(restoreSkinSave(saved)||DEFAULTS,catalog);
     renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.LinearToneMapping;renderer.toneMappingExposure=1;
     renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('aria-label','角色三维预览，拖动旋转、滚轮或双指缩放，也可使用方向键平移');stage.prepend(renderer.domElement);
     scene=new THREE.Scene();scene.background=new THREE.Color('#171717');camera=new THREE.PerspectiveCamera(34,1,.01,100);
@@ -227,7 +228,7 @@ async function init(){
     new ResizeObserver(()=>{const r=stage.getBoundingClientRect();camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);fitCamera();}).observe(stage);
     fitCamera(true);hairChoices();browChoices();outfitChoices();
     swatches($('#hair-swatches'),['#ff5d1c','#f5cc26','#a5d83d','#25b89a','#3587ed','#6147d4','#b546da','#ef68ae','#eeeeee','#222222'].map(x=>({id:x,color:x,name:x})),color=>change({color}));
-    swatches($('#skin-swatches'),SKIN_PRESETS.map((color,i)=>({id:color,color,name:'肤色 '+(i+1)})),skinColor=>change({skinColor}));
+    swatches($('#skin-swatches'),SKIN_PRESETS.map((color,i)=>({id:i,color,name:'肤色 '+(i+1)})),skinPreset=>change({skinPreset}));
     swatches($('#eye-swatches'),catalog.eyes.map((x,i)=>({...x,id:String(i)})),eye=>change({eye:Number(eye)}));sync();
     for(const input of document.querySelectorAll('.identity-options input'))input.addEventListener('change',()=>{if(input.checked)change({[input.name]:input.value});});
     for (const [prefix, key] of [['hair','color'], ['skin','skinColor']]) {
@@ -236,7 +237,7 @@ async function init(){
       function applyHex() {
         const color = hex.value.trim().toLowerCase();
         if (!/^#[0-9a-f]{6}$/.test(color)) return false;
-        if (color !== state[key]) change({[key]:color});
+        if (color !== state[key] || (key === 'skinColor' && state.skinPreset !== null)) change({[key]:color});
         return true;
       }
       hex.addEventListener('input', () => {

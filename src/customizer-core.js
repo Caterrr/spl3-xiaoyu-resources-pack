@@ -5,66 +5,114 @@ import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
 import {restoreExportPose} from './customizer-spl3-poses.js?v=7800c405309e';
 export {previewPoses,loadPreviewPose,setPreviewPose} from './customizer-spl3-poses.js?v=7800c405309e';
 
-// Player00.bfres Color_Skin frames 0–8, in game order. Display RGB is
-// sampled from the nine swatch centers in the Splatoon 3 player settings:
-// https://cdn-ak.f.st-hatena.com/images/fotolife/n/natsunobonyari/20221005/20221005125059.jpg
-export const SKIN_PRESETS = Object.freeze([
-  '#ddd3d1', '#e6d0bb', '#e6bbac', '#daae8c', '#db9d82',
-  '#b17c5a', '#8b6447', '#564c42', '#403731'
-]);
+import {skinFrames, skinMasks, scatteringRate} from './customizer-skin-data.js?v=2db9b079d4eb';
 
-// The flat skin texel in the published M_Face and M_Body albedos.
-const BASE_SKIN = '#e3a686';
-export function normalizeSkin(color) {
-  return typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)
-    ? color.toLowerCase() : BASE_SKIN;
+export const BASE_SKIN = '#e3a686';
+const baseChannels = [227, 166, 134];
+const maskImages = new Map();
+
+function nativeSkinScale(frame, face) {
+  const base = (face && frame.faceBase) || frame.base;
+  const scatter = (face && frame.faceScatter) || frame.scatter;
+  // Bake a diffuse approximation of native skin scattering into the portable
+  // PBR texture so the swatch, viewport and downloadable model agree.
+  return base.map((value, c) => value + scatteringRate * (scatter[c] - value));
 }
 
-export function prepareSkin(avatar) {
+export const SKIN_PRESETS = Object.freeze(skinFrames.map(frame => {
+  const scale = nativeSkinScale(frame, false);
+  return '#' + baseChannels.map((value, c) =>
+    srgb(toLinear(value) * scale[c]).toString(16).padStart(2, '0')).join('');
+}));
+
+export function normalizeSkinSelection(input) {
+  const preset = input?.skinPreset;
+  if (Number.isInteger(preset) && preset >= 0 && preset < skinFrames.length) {
+    return {skinPreset:preset, skinColor:SKIN_PRESETS[preset]};
+  }
+  const color = input?.skinColor;
+  return {skinPreset:null, skinColor:typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)
+    ? color.toLowerCase() : BASE_SKIN};
+}
+
+export function restoreSkinSave(input) {
+  // The screenshot palette stored its fourth chip as the automatic default.
+  if (input && !Object.hasOwn(input, 'skinPreset') && input.skinColor?.toLowerCase?.() === '#daae8c') {
+    return {...input, skinColor:BASE_SKIN};
+  }
+  return input;
+}
+
+function loadSkinMask(key) {
+  if (!maskImages.has(key)) {
+    const pending = image(skinMasks[key]).catch(error => {maskImages.delete(key); throw error;});
+    maskImages.set(key, pending);
+  }
+  return maskImages.get(key);
+}
+
+export async function prepareSkin(avatar, state, game) {
   const materials = new Set();
   avatar.traverse(mesh => {
     if (mesh.isMesh && /_M_(Body|Face)$/.test(mesh.material?.name)) materials.add(mesh.material);
   });
-  return [...materials].map(material => {
-    const surface = canvasImage(material.map.image);
-    const original = surface.pixels.data.slice();
-    const coverage = new Uint8Array(original.length / 4);
-    // The two skin atlases also contain neutral undershirt and facial ink.
-    // Retain those texels and feather the boundary of the baked pigmentation.
-    for (let p = 0, i = 0; i < original.length; p++, i += 4) {
-      const warmth = original[i] - Math.max(original[i+1], original[i+2]);
-      coverage[p] = Math.round(255 * Math.max(0, Math.min(1, (warmth - 4) / 24)));
-    }
-    replaceMap(material, surface.canvas);
-    return {material, original, coverage, ...surface};
-  });
+  return Promise.all([...materials].map(async material => {
+    const face = material.name.endsWith('_M_Face');
+    const maskKey = face ? state.species :
+      (game === 'raiders' && state.species === 'octopus' && state.gender === 'male' ? 'raidersOctopusMale' : state.gender);
+    const mask = await loadSkinMask(maskKey);
+    const sourceMap = material.map;
+    const surface = {material, face, mask, sourceMap, workingMap:null, color:BASE_SKIN, preset:null};
+    material.addEventListener('dispose', () => {
+      const inactive = material.map === sourceMap ? surface.workingMap : sourceMap;
+      inactive?.dispose();
+    });
+    return surface;
+  }));
 }
 
-export function setSkinColor(surfaces, color) {
-  const channels = [1, 3, 5].map(offset => {
-    const base = parseInt(BASE_SKIN.slice(offset, offset + 2), 16);
-    const selected = parseInt(color.slice(offset, offset + 2), 16);
-    const scale = linear[selected] / linear[base];
-    return Uint8Array.from(linear, value => srgb(value * scale));
-  });
+function prepareSkinPixels(surface) {
+  const {sourceMap, mask} = surface;
+  const {canvas, ctx, pixels} = canvasImage(sourceMap.image);
+  const maskPixels = canvasImage(mask, canvas.width, canvas.height).pixels.data;
+  const coverage = new Uint8Array(canvas.width * canvas.height);
+  for (let i = 0; i < coverage.length; i++) coverage[i] = maskPixels[i * 4];
+  const workingMap = sourceMap.clone();
+  workingMap.source = new THREE.Source(canvas);
+  Object.assign(surface, {workingMap, ctx, pixels, coverage, original:pixels.data.slice()});
+}
+
+export function setSkinColor(surfaces, color = BASE_SKIN, preset = null) {
   for (const surface of surfaces) {
-    if (surface.color === color) continue;
-    const {original, coverage, pixels, ctx, material} = surface;
-    for (let p = 0, i = 0; i < original.length; p++, i += 4) {
-      const weight = coverage[p] / 255;
-      if (!weight) continue;
-      for (let c = 0; c < 3; c++) {
-        const source = original[i+c];
-        pixels.data[i+c] = source + weight * (channels[c][source] - source);
+    if (surface.color === color && surface.preset === preset) continue;
+    const {material, sourceMap} = surface;
+    if (preset === null && color === BASE_SKIN) {
+      material.map = sourceMap;
+    } else {
+      if (!surface.workingMap) prepareSkinPixels(surface);
+      const {workingMap, ctx, pixels, coverage, original} = surface;
+      const scale = preset === null
+        ? baseChannels.map((base, c) => linear[parseInt(color.slice(1 + 2*c, 3 + 2*c), 16)] / linear[base])
+        : nativeSkinScale(skinFrames[preset], surface.face);
+      const channels = scale.map(factor => Uint8Array.from(linear, value => srgb(value * factor)));
+      for (let p = 0, i = 0; p < coverage.length; p++, i += 4) {
+        if (!coverage[p]) continue;
+        const weight = coverage[p] / 255;
+        for (let c = 0; c < 3; c++) {
+          const value = original[i+c];
+          pixels.data[i+c] = value + weight * (channels[c][value] - value);
+        }
       }
+      ctx.putImageData(pixels, 0, 0);
+      workingMap.needsUpdate = true;
+      material.map = workingMap;
     }
-    ctx.putImageData(pixels, 0, 0);
-    material.map.needsUpdate = true;
     surface.color = color;
+    surface.preset = preset;
   }
 }
 
-export const DEFAULTS = Object.freeze({species:'squid',gender:'female',hair:'Har_SQD001_F',brow:1,outfit:'Clt_AGL001',eye:0,color:'#ff5d1c',skinColor:SKIN_PRESETS[3]});
+export const DEFAULTS = Object.freeze({species:'squid',gender:'female',hair:'Har_SQD001_F',brow:1,outfit:'Clt_AGL001',eye:0,color:'#ff5d1c',skinColor:BASE_SKIN,skinPreset:null});
 export function normalize(input, catalog) {
   const s={...DEFAULTS,...input};
   if(!['squid','octopus'].includes(s.species))s.species=DEFAULTS.species;
@@ -75,7 +123,7 @@ export function normalize(input, catalog) {
   s.eye=Number.isInteger(Number(s.eye))?Math.max(0,Math.min(20,Number(s.eye))):0;
   s.brow=Number.isInteger(Number(s.brow))?Math.max(0,Math.min(3,Number(s.brow))):DEFAULTS.brow;
   if(!/^#[\da-f]{6}$/i.test(s.color))s.color=DEFAULTS.color;
-  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,eye:s.eye,color:s.color.toLowerCase(),skinColor:normalizeSkin(input?.skinColor)};
+  return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,eye:s.eye,color:s.color.toLowerCase(),...normalizeSkinSelection(input)};
 }
 export function avatarId(s){return 'Player0'+(Number(s.species==='octopus')*2+Number(s.gender==='male'));}
 export function browId(s){return `Eyb_${s.species==='octopus'?'OCT':'SQD'}00${s.brow}_${s.gender==='male'?'M':'F'}`;}
@@ -142,7 +190,8 @@ function canvasImage(image,w=image.width,h=image.height){const c=document.create
 async function image(url){const im=new Image();im.src=url;await im.decode();return im;}
 function replaceMap(material,canvas){const previous=material.map;const map=previous.clone();map.source=new THREE.Source(canvas);map.needsUpdate=true;material.map=map;previous.dispose();material.needsUpdate=true;}
 
-const linear=Float32Array.from({length:256},(_,i)=>{const c=i/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;});
+function toLinear(value){const c=value/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;}
+const linear=Float32Array.from({length:256},(_,i)=>toLinear(i));
 function srgb(c){return Math.round(Math.min(1,Math.max(0,c<=.0031308?12.92*c:1.055*c**(1/2.4)-.055))*255);}
 export async function prepareTints(root){
   const mats=new Set();root.traverse(o=>{for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[])if(m.userData.tintBlack)mats.add(m);});
@@ -179,7 +228,7 @@ export async function assemble(catalog,state){
     await maskBody(roles.body,wear.scene.userData.bodyMasks[id]);
     const eyeImages=await Promise.all(body.scene.userData.eyes.map(image));
     const eyeCanvas=canvasImage(eyeImages[state.eye]);replaceMap(roles.eye.material,eyeCanvas.canvas);
-    const skin=prepareSkin(body.scene);setSkinColor(skin,state.skinColor ?? BASE_SKIN);
+    const skin=await prepareSkin(body.scene,state,'raiders');setSkinColor(skin,state.skinColor,state.skinPreset);
     const tints=await prepareTints(character);tint(tints,state.color);
     character.updateMatrixWorld(true);
     return {game:'raiders',character,rig,tints,skin,eyeImages,eyeCanvas,eyeMaterial:roles.eye.material,state:{...state}};
