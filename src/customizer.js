@@ -4,7 +4,7 @@ import {setupPosePanel} from './customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
 const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=29bd5c9b69f2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=34174bde4d5b'}};
-let DEFAULTS,SKIN_PRESETS,setSkinColor,restoreSkinSave,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
+let DEFAULTS,setSkinColor,restoreSkinSave,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
 let catalog,state,model,renderer,controls,camera,scene,requestId=0,exporting=false,loading=true,hasError=false;
@@ -110,7 +110,6 @@ function syncColors(){
     $('#' + prefix + '-color').value = hex.value = color;
     hex.setCustomValidity('');
   }
-  selectedButtons($('#skin-swatches'),state.skinPreset);
   selectedButtons($('#hair-swatches'),state.color);selectedButtons($('#eye-swatches'),state.eye);
 }
 function sync(){
@@ -190,7 +189,7 @@ async function init(){
   try{
     document.documentElement.dataset.game=gameKey;document.title='奇迹鱿鱿 · '+gameName;
     const core=await import(profiles[gameKey].core);
-    ({DEFAULTS,SKIN_PRESETS,setSkinColor,restoreSkinSave,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags,setPreviewPose,loadPreviewPose}=core);
+    ({DEFAULTS,setSkinColor,restoreSkinSave,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags,setPreviewPose,loadPreviewPose}=core);
     if(setPreviewPose){
       const poses=core.previewPoses;
       poseMenu=setupPosePanel($('#panel-pose'),poses,choosePose);
@@ -228,7 +227,6 @@ async function init(){
     new ResizeObserver(()=>{const r=stage.getBoundingClientRect();camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);fitCamera();}).observe(stage);
     fitCamera(true);hairChoices();browChoices();outfitChoices();
     swatches($('#hair-swatches'),['#ff5d1c','#f5cc26','#a5d83d','#25b89a','#3587ed','#6147d4','#b546da','#ef68ae','#eeeeee','#222222'].map(x=>({id:x,color:x,name:x})),color=>change({color}));
-    swatches($('#skin-swatches'),SKIN_PRESETS.map((color,i)=>({id:i,color,name:'肤色 '+(i+1)})),skinPreset=>change({skinPreset}));
     swatches($('#eye-swatches'),catalog.eyes.map((x,i)=>({...x,id:String(i)})),eye=>change({eye:Number(eye)}));sync();
     for(const input of document.querySelectorAll('.identity-options input'))input.addEventListener('change',()=>{if(input.checked)change({[input.name]:input.value});});
     for (const [prefix, key] of [['hair','color'], ['skin','skinColor']]) {
