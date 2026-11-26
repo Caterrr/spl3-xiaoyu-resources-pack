@@ -92,8 +92,8 @@ def braid_tips(arm, meshes):
 
 
 def attach_rigs(rig, arms, meshes):
-    # Sample imported pose space before adding any constraints. glTF accessory
-    # armatures can have non-identity bind offsets under the head.
+    # Jaw rotation is driven directly. Both drivers and constraints must reach the imported skeleton.
+    driven_paths = {f.data_path.rpartition(".")[0] for f in rig.animation_data.drivers} if rig.animation_data else set()
     inverse = rig.matrix_world.inverted()
     bind = []
     hairs = []
@@ -113,7 +113,7 @@ def attach_rigs(rig, arms, meshes):
                               inverse @ arm.matrix_world @ p.matrix, p.length, pivots.get(p.name)))
             elif (arm == body or brow) and p.name in rig.pose.bones:
                 driven = rig.pose.bones[p.name]
-                if driven.constraints:
+                if driven.constraints or driven.path_from_id() in driven_paths:
                     bind.append((arm, p.name, inverse @ arm.matrix_world @ p.matrix, p.length))
     active(rig, 'EDIT')
     for arm, name, matrix, length in bind:
