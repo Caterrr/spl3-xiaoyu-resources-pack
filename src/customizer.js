@@ -1,3 +1,4 @@
+import {captureTransparentPng} from './customizer-png.js?v=b7b45e1e3bf5';
 import * as THREE from './vendor/three/build/three.module.min.js';
 import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.js';
 import {setupPosePanel} from './customizer-pose-menu.js?v=a9f289512a99';
@@ -13,7 +14,7 @@ let previewPose='rest',poseData=null,poseTicket=0,poseFrame=0,poseMenu,loadPrevi
 let wearKind='clothes';
 const wearKey=()=>({clothes:'outfit',bottoms:'bottom'})[wearKind]||wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
-const downloadBlend=$('#download-blend'),downloadVRM=$('#download-vrm'),dice=$('#randomize-character');
+const downloadPng=$('#download-png'),downloadBlend=$('#download-blend'),downloadVRM=$('#download-vrm'),dice=$('#randomize-character');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 function rollDiceIcon() {
@@ -42,7 +43,7 @@ function rollDiceIcon() {
   ], {duration: 300, easing: 'ease-in-out'});
   roll.onfinish = land;
 }
-function updateDownload(){dice.disabled=downloadVRM.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.editor-toolbar,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
+function updateDownload(){downloadPng.disabled=dice.disabled=downloadVRM.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.editor-toolbar,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
 function render(){if(renderer&&scene&&camera)renderer.render(scene,camera);}
 function framing(reset=false){
@@ -218,7 +219,7 @@ async function init(){
     });
     let saved;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
     state=normalize(restoreSkinSave(saved)||DEFAULTS,catalog);
-    renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.LinearToneMapping;renderer.toneMappingExposure=1;
+    renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.LinearToneMapping;renderer.toneMappingExposure=1;
     renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('aria-label','角色三维预览，拖动旋转、滚轮或双指缩放，也可使用方向键平移');stage.prepend(renderer.domElement);
     scene=new THREE.Scene();scene.background=new THREE.Color('#171717');camera=new THREE.PerspectiveCamera(34,1,.01,100);
     scene.add(new THREE.HemisphereLight(0xffffff,0x6f737e,2.6));const key=new THREE.DirectionalLight(0xffffff,2.5);key.position.set(3,5,5);scene.add(key);const fill=new THREE.DirectionalLight(0xaabfff,1.2);fill.position.set(-3,2,-3);scene.add(fill);
@@ -274,13 +275,15 @@ async function init(){
     renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();hasError=true;updateDownload();showStatus('三维预览已暂停，正在恢复…');});
     renderer.domElement.addEventListener('webglcontextrestored',()=>rebuild());
     async function downloadModel(format){
-      if(download.disabled||downloadBlend.disabled)return;exporting=true;updateDownload();downloadStatus.textContent='正在打包模型与贴图…';
+      if(download.disabled||downloadBlend.disabled)return;exporting=true;updateDownload();downloadStatus.textContent=format==='png'?'正在导出 PNG…':'正在打包模型与贴图…';
       const selected=model,selection={...model.state};
       try{
         const outfit=(gameKey==='spl3'?catalog.clothes:catalog.outfits).find(x=>x.id===selection.outfit).name;
         const title=`${gameName}-${selection.species==='squid'?'鱿鱼':'章鱼'}-${selection.gender==='female'?'女':'男'}-${outfit}`;
         let blob;
-        if(format==='vrm'){
+        if(format==='png'){
+          blob=await captureTransparentPng(renderer,scene,camera);
+        }else if(format==='vrm'){
           const {exportVRM}=await import('./customizer-vrm.js?v=4dd990facd12');
           blob=await exportVRM(selected,title);
         }else{
@@ -294,6 +297,7 @@ async function init(){
       }catch(e){downloadStatus.textContent='下载未完成，请重新点击下载。';console.error(e);}
       finally{exporting=false;updateDownload();}
     }
+    downloadPng.addEventListener('click',()=>downloadModel('png'));
     download.addEventListener('click',()=>downloadModel('glb'));
     downloadVRM.addEventListener('click',()=>downloadModel('vrm'));
     downloadBlend.addEventListener('click',()=>downloadModel('blend'));
