@@ -106,7 +106,7 @@ function squarePng(renderer, scene, camera, restore) {
   }
 }
 
-export async function openPortrait({model, renderer, sourceScene, render, gameName, currentPose, poses, camera:editorCamera}) {
+export async function openPortrait({model, renderer, sourceScene, render, gameName, currentPose, poses, camera:editorCamera, initialShot}) {
   const dialog = document.querySelector('#portrait-dialog');
   const image = dialog.querySelector('img');
   const save = dialog.querySelector('[download]');
@@ -114,6 +114,12 @@ export async function openPortrait({model, renderer, sourceScene, render, gameNa
   const message = dialog.querySelector('[role=status]');
   const expression = dialog.querySelector('[name=expression]');
   const background = dialog.querySelector('[type=color]');
+  if(initialShot){
+    const faces=['neutral','smile','pout','brow'];
+    if(/^[0-3]$/.test(initialShot.get('face')||''))expression.value=faces[Number(initialShot.get('face'))];
+    const paper=initialShot.get('paper');
+    if(/^#[0-9a-f]{6}$/i.test(paper||''))background.value=paper;
+  }
   const events = new AbortController();
   const {signal} = events;
   const scene = new THREE.Scene();
@@ -137,7 +143,7 @@ export async function openPortrait({model, renderer, sourceScene, render, gameNa
   }
   poseSelect.value=currentPose||'rest';
   if(poseSelect.selectedIndex<0)poseSelect.value='rest';
-  dialog.querySelector('[name=shot][value='+(currentPose&&currentPose!=='rest'&&currentPose!=='stand'?'pose':'front')+']').checked=true;
+  dialog.querySelector('[name=shot][value='+(initialShot||currentPose&&currentPose!=='rest'&&currentPose!=='stand'?'pose':'front')+']').checked=true;
   function changeMode(){tools.hidden=!posed();view.classList.toggle('free-framing',posed());}
   changeMode();
   let finish;

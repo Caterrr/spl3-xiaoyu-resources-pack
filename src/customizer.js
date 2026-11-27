@@ -218,8 +218,16 @@ async function init(){
       outfitChoices();
       $('.outfit-scroll').scrollTop = 0;
     });
+    const photoParams=new URLSearchParams(location.search);
+    let initialShot=photoParams.get('shot')==='pose'?photoParams:null;
     let saved;try{saved=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
-    state=normalize(restoreSkinSave(saved)||DEFAULTS,catalog);
+    let initialState=restoreSkinSave(saved)||DEFAULTS;
+    if(initialShot && /^[0-7]$/.test(initialShot.get('actor')||'')){
+      const actor=Number(initialShot.get('actor')), ink=initialShot.get('ink');
+      initialState={...initialState,species:actor%4<2?'squid':'octopus',gender:actor%2?'male':'female'};
+      if(/^#[0-9a-f]{6}$/i.test(ink||''))initialState.color=ink;
+    }
+    state=normalize(initialState,catalog);
     renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.LinearToneMapping;renderer.toneMappingExposure=1;
     renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('aria-label','角色三维预览，拖动旋转、滚轮或双指缩放，也可使用方向键平移');stage.prepend(renderer.domElement);
     scene=new THREE.Scene();scene.background=new THREE.Color('#171717');camera=new THREE.PerspectiveCamera(34,1,.01,100);
@@ -303,8 +311,9 @@ async function init(){
       exporting = true;
       updateDownload();
       try {
-        const {openPortrait} = await import('./customizer-portrait.js?v=a7067244d4e4');
-        if (!hasError) await openPortrait({model, renderer, sourceScene:scene, render, gameName, currentPose:previewPose, poses:core.previewPoses, camera});
+        const {openPortrait} = await import('./customizer-portrait.js?v=cd68a732e424');
+        if (!hasError) await openPortrait({model, renderer, sourceScene:scene, render, gameName, currentPose:previewPose, poses:core.previewPoses, camera, initialShot});
+        initialShot=null;
       } catch (error) {
         downloadStatus.textContent = '拍照未能打开，请重试。';
         console.error(error);
@@ -319,6 +328,7 @@ async function init(){
     downloadVRM.addEventListener('click',()=>downloadModel('vrm'));
     downloadBlend.addEventListener('click',()=>downloadModel('blend'));
     await rebuild();
+    if(initialShot && !portraitButton.disabled)portraitButton.click();
   }catch(e){showStatus(e.message?.includes('WebGL')?'当前浏览器无法开启三维预览，请开启硬件加速后刷新。':e.message||'页面加载失败，请刷新重试',true);retry.onclick=()=>location.reload();download.disabled=true;}
 }
 init();

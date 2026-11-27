@@ -313,7 +313,7 @@ async function init(){
       exporting = true;
       updateDownload();
       try {
-        const {openPortrait} = await import('../customizer-portrait.js?v=a7067244d4e4');
+        const {openPortrait} = await import('../customizer-portrait.js?v=cd68a732e424');
         if (!hasError) await openPortrait({model, renderer, sourceScene:scene, render, gameName, currentPose:previewPose, poses:core.previewPoses, camera});
       } catch (error) {
         downloadStatus.textContent = '拍照未能打开，请重试。';

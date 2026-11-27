@@ -53,7 +53,11 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
   async function repaint() {
     const run=++paintRun;
     const full=$('.gb-customizer');
-    if(full)full.href='./customizer.html?game='+(Number(form.elements.actor.value)<4?'spl3':'raiders');
+    if(full){
+      const {actor,face,ink,paper}=readRecipe();
+      const query=new URLSearchParams({game:actor<4?'spl3':'raiders',shot:'pose',actor,face,ink,paper});
+      full.href='./customizer.html?'+query;
+    }
     apply.disabled=true;
     try {
       await paint(preview,readRecipe());
