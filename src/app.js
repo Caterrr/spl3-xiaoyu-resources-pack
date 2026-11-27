@@ -15,6 +15,7 @@ const modelProgress=document.querySelector('#model-progress');
 const modelVariant=document.querySelector('#model-variant');
 const modelVariantControl=document.querySelector('#model-variant-control');
 const modelBackground=document.querySelector('#model-background');
+let inkSession;
 let backgroundMaterials=[];
 function setBackgroundMaterial({material,color,mode},visible){
  material.setAlphaMode(visible?mode:'BLEND');
@@ -62,6 +63,8 @@ async function loadModel(item){
  const attempt=analyticsPreview=metric('previewStart',item,game.key+':'+(links.find(link=>link.getAttribute('aria-current')==='page')?.dataset.section||game.defaultSection));
  modelAbort?.abort();modelAbort=new AbortController();
  const signal=modelAbort.signal;
+ inkSession=undefined;
+ document.querySelector('#weapon-ink').hidden=true;
  if(modelObjectUrl)URL.revokeObjectURL(modelObjectUrl);
  modelBlob=modelObjectUrl=undefined;
  modelStage.replaceChildren();
@@ -115,7 +118,25 @@ async function loadModel(item){
    modelStatus.textContent=progress<100?'加载模型 '+progress+'%':'准备预览…';
   });
   viewer.addEventListener('model-visibility',event=>{if(version===modelVersion&&modelDialog.open&&event.detail.visible)attempt?.ready();});
+  let pickerStarted=false;
   viewer.addEventListener('load',()=>{if(version===modelVersion){
+   const section=item.section||new URL(location.href).searchParams.get('section')||game.defaultSection;
+   if(!pickerStarted && ['old','new','sub-special','weapons'].includes(section)){
+    pickerStarted=true;
+    import('./weapon-ink/picker.mjs').then(({enableInk})=>enableInk({
+     item,signal,original:blob,size,
+     links:{blend:document.querySelector('#download-blend'),glb:document.querySelector('#download-glb')},
+     loadBlend:()=>fileRuntime.then(({loadModelFile})=>loadModelFile(item,'blend',{signal})),
+     showGlb(url){
+      const src=url||modelObjectUrl;
+      if(viewer.src===src)return;
+      const orbit=viewer.getCameraOrbit(),target=viewer.getCameraTarget();
+      viewer.cameraOrbit=orbit.toString();viewer.cameraTarget=target.toString();
+      viewer.fieldOfView=viewer.getFieldOfView()+'deg';viewer.src=src;
+     },
+     ready(session){inkSession=session;}
+    })).catch(()=>{});
+   }
    backgroundMaterials=(viewer.model?.materials||[]).filter(material=>(item.previewHideMaterialPrefixes||[]).some(prefix=>material.name.startsWith(prefix))).map(material=>({material,color:[...material.pbrMetallicRoughness.baseColorFactor],mode:material.getAlphaMode()}));
    modelBackground.hidden=!backgroundMaterials.length;
    if(backgroundMaterials.length){
@@ -154,11 +175,19 @@ function selectModelVariant(){
  activeItem=item;
  document.querySelector('#model-title').textContent=activeGroup.name;
  for(const format of ['blend','glb']){
-  const link=document.querySelector('#download-'+format);link.dataset.downloadKey=item.id+':'+format;link.removeAttribute('aria-busy');
+  const link=document.querySelector('#download-'+format);link.dataset.downloadKey=item.id+':'+format;link.removeAttribute('aria-busy');link.removeAttribute('aria-disabled');
   const downloadResource=resourceUrl(item[format]);
   link.href=downloadResource+(downloadResource.includes('?')?'&':'?')+'download='+encodeURIComponent(item.id+'.'+format);link.download=item.id+'.'+format;
   link.onclick=event=>{
    event.preventDefault();
+   if(inkSession?.selected()){
+    const output=inkSession.download(format);
+    if(output){
+     const name=link.download,download=metric('downloadClick',item,format,analyticsPreview);
+     fileRuntime.then(({saveModelFile})=>{saveModelFile(output,name);download?.ready();}).catch(()=>download?.error('save'));
+    }
+    return;
+   }
    if(format==='glb'&&activeItem?.id===item.id&&modelBlob){const blob=modelBlob;const download=metric('downloadClick',item,format,analyticsPreview);fileRuntime.then(({saveModelFile})=>{saveModelFile(blob,item.id+'.glb');download?.ready();}).catch(()=>download?.error('save'));}
    else downloadModel(item,format,link);
   };
@@ -232,7 +261,7 @@ async function renderSection(){
 const closeModel=()=>window.modelMotion?window.modelMotion.close():modelDialog.close();
 document.querySelector('#model-close').addEventListener('click',closeModel);
 modelDialog.addEventListener('cancel',event=>{event.preventDefault();closeModel();});
-document.querySelector('#model-retry').addEventListener('click',()=>{if(activeItem)loadModel(activeItem);});
+document.querySelector('#model-retry').addEventListener('click',()=>{if(activeItem)selectModelVariant();});
 modelDialog.addEventListener('close',()=>{
  window.modelMotion?.cleanup();
  analyticsPreview?.cancel();analyticsPreview=undefined;
@@ -291,3 +320,4 @@ socialDialog.addEventListener('click',event=>{
   if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)socialDialog.close();
 });
 socialDialog.addEventListener('close',()=>socialTrigger?.focus({preventScroll:true}));
+

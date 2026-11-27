@@ -1,0 +1,13 @@
+#weapon-ink {display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;pointer-events:auto;color:#eee;font-size:14px}
+#weapon-ink[hidden] {display:none}
+#weapon-ink label {display:inline-flex;align-items:center;gap:8px}
+#weapon-ink select,#weapon-ink input {box-sizing:border-box;min-height:36px;border:1px solid #666;border-radius:0;background:#171717;color:#eee;font:inherit;cursor:pointer}
+#weapon-ink select {padding:3px 6px}
+#weapon-ink input {width:40px;padding:3px}
+#weapon-ink :focus-visible {outline:2px solid var(--accent);outline-offset:2px}
+#weapon-ink [role=status]:empty {display:none}
+.model-downloads [aria-disabled=true] {opacity:.6;cursor:wait}
+@media (max-width:600px) {
+ #weapon-ink {flex-basis:100%;margin-top:0}
+ #weapon-ink input,#weapon-ink select {min-height:44px}
+}
