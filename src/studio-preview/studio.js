@@ -6,7 +6,7 @@ const option=(label,value)=>new Option(label,value);
 const note=text=>{el('status').textContent=text;};
 const gameNames={spl3:'喷 3',raiders:'涂击队'};
 const sections={
-  spl3:{old:'武器',new:'新武器','sub-special':'技能',props:'杂物',decor:'装饰',maps:'地图',scenes:'场景',characters:'角色模型',clothes:'衣服',headgear:'发饰',shoes:'鞋子'},
+  spl3:{weapons:'武器','sub-special':'技能',props:'杂物',decor:'装饰',maps:'地图',scenes:'场景',characters:'角色模型',clothes:'衣服',headgear:'发饰',shoes:'鞋子'},
   raiders:{weapons:'武器',skills:'技能',props:'杂物',decor:'装饰',maps:'地图',scenes:'场景',characters:'角色模型',clothing:'服装'},
   phantom:{weapons:'武器',skills:'技能',props:'杂物',decor:'装饰',maps:'地图',scenes:'场景',characters:'角色模型'}
 };

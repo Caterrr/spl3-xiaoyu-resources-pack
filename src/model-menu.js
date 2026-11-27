@@ -39,7 +39,7 @@
     const customizerPage = location.pathname.endsWith('/customizer.html');
     const libraryPage = customizerPage || location.pathname.endsWith('/library.html');
     const gameKey = customizerPage ? (params.get('game') === 'spl3' ? 'spl3' : 'raiders') : params.get('game') || 'spl3';
-    const section = customizerPage ? 'customizer' : params.get('section') || (gameKey === 'spl3' ? 'new' : 'weapons');
+    const section = customizerPage ? 'customizer' : params.get('section') || 'weapons';
     for (const control of controls) {
       if (!control.menu.hasAttribute('data-game')) continue;
       const active = libraryPage && control.menu.dataset.game === gameKey;

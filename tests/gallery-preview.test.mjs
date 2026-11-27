@@ -18,12 +18,12 @@ function gallery({hasWebGL=true}={}){
  }
  const document={
   querySelector(key){if(!elements.has(key))elements.set(key,new Element());return elements.get(key);},
-  querySelectorAll(query){return query.includes('navigation')?[{dataset:{section:'new',game:'spl3'},getAttribute(){return 'page';},setAttribute(){},addEventListener(){}}]:[];},
+  querySelectorAll(query){return query.includes('navigation')?[{dataset:{section:'weapons',game:'spl3'},getAttribute(){return 'page';},setAttribute(){},addEventListener(){}}]:[];},
   createElement(tag){const el=new Element();el.tag=tag;if(tag==='canvas')el.getContext=()=>hasWebGL?{getExtension:()=>({loseContext:()=>calls.released++})}:null;return el;}
  };
  const URLMock=class extends URL{static createObjectURL(){return 'blob:test';}static revokeObjectURL(){}};
  const context=vm.createContext({
-  document,window:{libraryGame:{key:'spl3',defaultSection:'new'},addEventListener(){},Spl3Metrics:{previewStart:()=>({error:e=>events.push(e),ready:()=>events.push('ready'),cancel(){}})}},
+  document,window:{libraryGame:{key:'spl3',defaultSection:'weapons'},addEventListener(){},Spl3Metrics:{previewStart:()=>({error:e=>events.push(e),ready:()=>events.push('ready'),cancel(){}})}},
   location:{href:'https://example.test/library.html'},URL:URLMock,AbortController,setTimeout,requestAnimationFrame:fn=>fn(),
   customElements:{get:()=>({})}, runtimeModule:()=>{calls.runtime++;return Promise.resolve();},
   fileModule:Promise.resolve({loadModelFile:async (_item,format)=>{calls.transfers.push(format);return new Blob(['asset']);},saveModelFile(){}}),

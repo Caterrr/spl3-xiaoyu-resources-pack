@@ -121,7 +121,7 @@ async function loadModel(item){
   let pickerStarted=false;
   viewer.addEventListener('load',()=>{if(version===modelVersion){
    const section=item.section||new URL(location.href).searchParams.get('section')||game.defaultSection;
-   if(!pickerStarted && ['old','new','sub-special','weapons'].includes(section)){
+   if(!pickerStarted && ['sub-special','weapons'].includes(section)){
     pickerStarted=true;
     import('./weapon-ink/picker.mjs?v=ink-live-1').then(({enableInk})=>enableInk({
      item,signal,original:blob,size,
