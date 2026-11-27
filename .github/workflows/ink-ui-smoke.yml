@@ -1,0 +1,20 @@
+name: Verify live weapon palette
+on:
+  push:
+    branches: [qa/weapon-ink-live-ui]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.56.1 pngjs@7.0.0
+      - run: node scripts/build.mjs
+      - run: node ink-ui-smoke.mjs
