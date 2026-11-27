@@ -24,6 +24,7 @@ let previewPose='rest',poseData=null,poseTicket=0,poseFrame=0,poseMenu,loadPrevi
 let wearKind='clothes';
 const wearKey=()=>({clothes:'outfit',bottoms:'bottom'})[wearKind]||wearKind;
 function showStatus(message,error=false){status.textContent=message;overlay.hidden=!message;retry.hidden=!error;}
+const portraitButton = $('#open-portrait');
 const downloadPng=$('#download-png'),downloadBlend=$('#download-blend'),downloadVRM=$('#download-vrm'),dice=$('#randomize-character');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -53,7 +54,7 @@ function rollDiceIcon() {
   ], {duration: 300, easing: 'ease-in-out'});
   roll.onfinish = land;
 }
-function updateDownload(){studioButton.disabled=downloadPng.disabled=dice.disabled=downloadVRM.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.editor-toolbar,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
+function updateDownload(){studioButton.disabled=portraitButton.disabled=downloadPng.disabled=dice.disabled=downloadVRM.disabled=downloadBlend.disabled=download.disabled=loading||exporting||hasError||!model;for(const el of document.querySelectorAll('.editor-toolbar,.editor-panel'))el.inert=exporting;$('#reset-character').disabled=exporting;}
 function persist(){if(studioEdit)return;try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} }
 function render(){if(renderer&&scene&&camera)renderer.render(scene,camera);}
 function framing(reset=false){
@@ -307,6 +308,22 @@ async function init(){
       }catch(e){downloadStatus.textContent='下载未完成，请重新点击下载。';console.error(e);}
       finally{exporting=false;updateDownload();}
     }
+    portraitButton.addEventListener('click', async () => {
+      if (portraitButton.disabled) return;
+      exporting = true;
+      updateDownload();
+      try {
+        const {openPortrait} = await import('../customizer-portrait.js?v=a7067244d4e4');
+        if (!hasError) await openPortrait({model, renderer, sourceScene:scene, render, gameName, currentPose:previewPose, poses:core.previewPoses, camera});
+      } catch (error) {
+        downloadStatus.textContent = '拍照未能打开，请重试。';
+        console.error(error);
+      } finally {
+        exporting = false;
+        updateDownload();
+        portraitButton.focus({preventScroll:true});
+      }
+    });
     downloadPng.addEventListener('click',()=>downloadModel('png'));
     download.addEventListener('click',()=>downloadModel('glb'));
     downloadVRM.addEventListener('click',()=>downloadModel('vrm'));

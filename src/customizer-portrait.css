@@ -1,0 +1,99 @@
+#open-portrait {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  min-height: 40px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #191919e8;
+  color: #eee;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+#open-portrait svg {width: 17px; height: 17px}
+#open-portrait:disabled {opacity: .45; cursor: default}
+#portrait-dialog {
+  box-sizing: border-box;
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 18px;
+  overflow: auto;
+  color: #f8f8f8;
+  background: #1b1b1b;
+  border: 1px solid #494949;
+  border-radius: 8px;
+  font: inherit;
+  color-scheme: dark;
+}
+#portrait-dialog::backdrop {background: #000b}
+.portrait-heading, .portrait-controls, .portrait-controls fieldset, .portrait-label {
+  display: flex;
+  align-items: center;
+}
+.portrait-heading {justify-content: space-between; margin-bottom: 12px}
+.portrait-heading h2 {font: inherit; font-size: 19px; font-weight: 650; margin: 0}
+.portrait-heading button {
+  font: inherit; font-size: 24px; line-height: 1; color: #ddd; background: none;
+  border: 0; padding: 4px 8px; cursor: pointer;
+}
+.portrait-preview {
+  position: relative; margin: 0 auto; aspect-ratio: 1; overflow: hidden;
+  width: min(100%, max(180px, calc(100dvh - 216px))); background: #333;
+}
+.portrait-preview img {display: block; width: 100%; height: 100%}
+.portrait-preview img[hidden] {display: none}
+.portrait-preview [role=status]:not(:empty) {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: white; font-size: 13px; text-align: center;
+}
+.portrait-controls {flex-wrap: wrap; gap: 10px 16px; margin: 14px 0}
+.portrait-controls fieldset {
+  padding: 0; margin: 0; gap: 2px; border: 0; border-radius: 4px; background: #303030;
+}
+.portrait-controls fieldset label {position: relative; cursor: pointer}
+.portrait-controls fieldset input {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer;
+}
+.portrait-controls fieldset span {display: block; padding: 8px 10px; border-radius: 3px; font-size: 13px}
+.portrait-controls fieldset input:checked + span {background: var(--accent, #deff00); color: #151515}
+.portrait-controls fieldset input:focus-visible + span {outline: 2px solid #fff; outline-offset: 2px}
+.portrait-label {gap: 6px; font-size: 13px; color: #ddd}
+.portrait-label select {
+  font: inherit; border: 1px solid #626262; border-radius: 4px; padding: 6px 4px; background: #282828; color: #fff;
+}
+.portrait-label input[type=color] {width: 32px; height: 32px; padding: 2px; border: 1px solid #666; border-radius: 3px; background: transparent; cursor: pointer}
+.portrait-save {
+  display: block; padding: 11px 14px; text-align: center; font: inherit; font-size: 14px;
+  text-decoration: none; color: #151515; background: #f4f4f4; border-radius: 4px;
+}
+.portrait-save[aria-disabled=true] {opacity: .4; pointer-events: none}
+@media (hover: hover) {
+  #open-portrait:enabled:hover {border-color: var(--accent); color: var(--accent)}
+  .portrait-save[href]:hover {background: var(--accent)}
+}
+
+#portrait-dialog [data-book-avatar] {width:100%; margin-top:6px; border:1px solid #666; background:transparent; color:#eee; cursor:pointer}
+#portrait-dialog [data-book-avatar]:disabled {opacity:.4;cursor:default}
+
+.portrait-preview img {pointer-events:none;user-select:none}
+.portrait-preview.free-framing {touch-action:none;cursor:grab}
+.portrait-preview.free-framing:active {cursor:grabbing}
+.portrait-pose-tools:not([hidden]) {display:grid;gap:10px;margin:0 0 12px}
+.portrait-pose-choice,.portrait-pose-choice label,.portrait-adjust {display:flex;gap:8px;align-items:center}
+.portrait-pose-choice label {flex:1;min-width:0;font-size:13px}
+.portrait-pose-choice select {flex:1;min-width:0}
+.portrait-pose-choice select,.portrait-pose-tools button {background:#303030;color:#eee;border:1px solid #555;border-radius:4px;padding:6px;font:inherit}
+.portrait-pose-tools button {cursor:pointer}
+.portrait-pose-choice [data-roll] {width:40px;font-size:20px;line-height:1}
+.portrait-lenses {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.portrait-lenses label {display:grid;font-size:13px}
+.portrait-lenses input {width:100%;margin:4px 0;accent-color:var(--accent,#ff5d1c)}
+.portrait-adjust {justify-content:space-between;color:#ccc;font-size:12px}
+.portrait-adjust button {font-size:12px}
+@media(max-height:750px){#portrait-dialog:has(.free-framing) .portrait-preview {width:min(100%,max(165px,calc(100dvh - 355px)))}}

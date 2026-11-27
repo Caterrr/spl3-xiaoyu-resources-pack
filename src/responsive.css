@@ -104,3 +104,5 @@
 @media(prefers-reduced-motion:reduce){
  .about-answer,.about-section--long .about-answer{transition:none}
 }
+
+@media(max-width:700px){.site-header .game-navigation:has(a[href$="guestbook.html"]){flex-wrap:wrap;justify-content:flex-start}}

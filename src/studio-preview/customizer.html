@@ -5,10 +5,11 @@
 <meta name="description" content="奇迹鱿鱿：搭配涂击队角色、发型与服装，实时预览并下载带骨骼和贴图的 GLB。">
 <link rel="icon" href="../assets/site-icon.ico"><link rel="stylesheet" href="../styles.css?v=0bea74d42a71">
 <link rel="stylesheet" href="../model-menu.css?v=c53c81d1bf0c"><link rel="stylesheet" href="../typography.css?v=a554d1e98007">
-<link rel="stylesheet" href="../responsive.css?v=897b2c837167"><link rel="stylesheet" href="./customizer.css?v=da1fb16fc626">
+<link rel="stylesheet" href="../responsive.css?v=73272f6e6e4f"><link rel="stylesheet" href="./customizer.css?v=da1fb16fc626">
 <link rel="stylesheet" href="../page-motion.css?v=fade-420">
 <script src="../page-motion.js?v=fade-420" defer></script>
 <script type="importmap">{"imports":{"three":"../vendor/three/build/three.module.min.js"}}</script>
+<link rel="stylesheet" href="../customizer-portrait.css?v=9749f1a9de81">
 </head><body class="customizer-page">
 <header class="site-header">
 <div class="container header-layout">
@@ -63,7 +64,7 @@
 </ul>
 </li>
 <li><a href="../about.html">关于</a></li>
-<li><a href="https://flop-ink-race.cater-dcy.chatgpt.site/"><span class="menu-spectrum">小游戏</span></a></li>
+<li><a href="../guestbook.html"><span class="menu-spectrum">留言板（测试中）</span></a></li>
 </ul>
 </nav>
 <nav class="social-links" aria-label="个人链接">
@@ -93,6 +94,7 @@
     </g>
   </svg>
 </button><button type="button" id="open-studio" disabled>摄影棚</button><a id="cancel-studio-edit" hidden>取消</a></div>
+<button type="button" id="open-portrait" aria-haspopup="dialog" aria-controls="portrait-dialog" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 7.5h4l1.5-2.8h7L17 7.5h4v12H3z"/><circle cx="12" cy="13.2" r="3.5"/></svg>大头贴</button>
 <div class="stage-status" id="stage-status" role="status" aria-live="polite"><p id="stage-message">加载搭配…</p><button type="button" id="retry-character" hidden>重试</button></div>
 </section>
 <aside class="customizer-controls" aria-label="搭配选项">
@@ -138,9 +140,36 @@
 </div>
 <div class="editor-actions"><button type="button" id="download-blend" class="download-character" disabled>blender（骨骼+控制器）</button><button type="button" id="download-character" class="download-character" disabled><span>下载 GLB</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></button><button type="button" id="download-vrm" class="download-character" disabled><span>下载 VRM</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></button><p id="download-status" class="download-status" role="status" aria-live="polite"></p></div>
 </aside></div></main>
+<dialog id="portrait-dialog" aria-labelledby="portrait-title">
+  <div class="portrait-heading"><h2 id="portrait-title">大头贴 / 证件照</h2><button type="button" data-close aria-label="关闭拍照">×</button></div>
+  <div class="portrait-preview" tabindex="0" aria-label="照片预览。动作取景时可拖动或用方向键平移。"><img alt="正方形角色照片预览" hidden><span role="status"></span></div>
+  <div class="portrait-controls">
+    <fieldset aria-label="拍照方式">
+      <label><input type="radio" name="shot" value="front" checked><span>正脸表情</span></label>
+      <label><input type="radio" name="shot" value="pose"><span>动作取景</span></label>
+    </fieldset>
+    <fieldset aria-label="照片构图">
+      <label><input type="radio" name="framing" value="head" checked><span>头像</span></label>
+      <label><input type="radio" name="framing" value="bust"><span>半身照</span></label>
+    </fieldset>
+    <label class="portrait-label">表情<select name="expression"><option value="neutral">自然</option><option value="smile">微笑</option><option value="pout">嘟嘴</option><option value="brow">挑眉</option></select></label>
+    <label class="portrait-label">背景<input type="color" value="#ffffff"></label>
+  </div>
+  <div class="portrait-pose-tools" hidden>
+    <div class="portrait-pose-choice"><label>动作<select name="photoPose"></select></label><button type="button" data-roll title="随机动作" aria-label="骰子：随机动作">⚄</button></div>
+    <div class="portrait-lenses">
+      <label>左右旋转<input type="range" name="yaw" min="-180" max="180" value="0"></label>
+      <label>俯仰<input type="range" name="pitch" min="-70" max="70" value="0"></label>
+      <label>远近<input type="range" name="zoom" min="50" max="190" value="100"></label>
+    </div>
+    <div class="portrait-adjust"><span>拖动照片可平移</span><button type="button" data-center>取景复位</button></div>
+  </div>
+  <a class="portrait-save" download aria-disabled="true">保存 PNG</a>
+  <button type="button" class="portrait-save" data-book-avatar disabled>用作留言头像</button>
+</dialog>
 <dialog id="social-dialog" aria-labelledby="social-title">
 <div class="social-dialog-heading"><h2 id="social-title"></h2><button id="social-close" type="button" aria-label="关闭二维码窗口" autofocus>×</button></div>
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="../model-menu.js?v=aa3c34cc0c26" defer></script><script src="../social.js" defer></script><script type="module" src="./customizer.js?v=3c8d36adb8cf"></script></body></html>
+<script src="../model-menu.js?v=aa3c34cc0c26" defer></script><script src="../social.js" defer></script><script type="module" src="./customizer.js?v=5e114faed5a7"></script></body></html>
