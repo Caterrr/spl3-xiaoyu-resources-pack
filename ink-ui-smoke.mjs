@@ -5,12 +5,12 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright-core';
 import {PNG} from 'pngjs';
 
-const catalog=JSON.parse(await fs.readFile('dist/catalog/spl3/old.json'));
+const catalog=JSON.parse(await fs.readFile('src/catalog/spl3/old.json'));
 const names=['Roller_Wide_00','Brush_Normal_00','Roller_Compact_00'];
 catalog.items=catalog.items.filter(item=>names.includes(item.name));
 assert.equal(catalog.items.length,3);
 await fs.mkdir('dist/ink-ui-fixtures',{recursive:true});
-for(const item of catalog.items)for(const format of ['blend','glb']) {
+if(!process.argv.includes('--live'))for(const item of catalog.items)for(const format of ['blend','glb']) {
  const resp=await fetch(item[format],{signal:AbortSignal.timeout(45000)});
  assert(resp.ok,item.name+' '+resp.status);
  const bytes=Buffer.from(await resp.arrayBuffer());
