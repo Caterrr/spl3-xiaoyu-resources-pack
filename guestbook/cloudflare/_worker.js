@@ -3,6 +3,8 @@ const prefix='/api/guestbook/';
 const schema=[
   'CREATE TABLE IF NOT EXISTS avatars(id TEXT PRIMARY KEY,png BLOB NOT NULL)',
   'CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY,thread INTEGER REFERENCES messages(id),parent INTEGER REFERENCES messages(id),author TEXT NOT NULL,avatar TEXT NOT NULL REFERENCES avatars(id),body TEXT NOT NULL,created INTEGER NOT NULL,viewer TEXT NOT NULL,ticket TEXT NOT NULL,UNIQUE(viewer,ticket))',
+  'CREATE TABLE IF NOT EXISTS guestbook_pins(rank INTEGER PRIMARY KEY AUTOINCREMENT,message INTEGER NOT NULL UNIQUE REFERENCES messages(id))',
+  "CREATE TRIGGER IF NOT EXISTS guestbook_remove_pin AFTER UPDATE OF avatar ON messages WHEN NEW.avatar='removed' BEGIN DELETE FROM guestbook_pins WHERE message=NEW.id; END",
   'CREATE TABLE IF NOT EXISTS moderators(viewer TEXT PRIMARY KEY)',
   'CREATE INDEX IF NOT EXISTS guestbook_avatar_refs ON messages(avatar)',
   'CREATE INDEX IF NOT EXISTS message_thread ON messages(thread,id)',
@@ -13,9 +15,47 @@ const removed='removed';
 const permission='(m.viewer=?1 OR EXISTS(SELECT 1 FROM moderators WHERE viewer=?1))';
 const liveReplies="SELECT count(*) FROM messages r WHERE r.thread=m.id AND r.avatar!='removed'";
 const select="SELECT m.id,m.thread,m.parent,m.author,m.avatar,m.body,m.created,NULLIF(p.author,'') AS target,"+
+  "COALESCE(pin.rank,0) AS pinOrder,(m.thread IS NULL AND m.avatar!='removed' AND EXISTS(SELECT 1 FROM moderators WHERE viewer=?1)) AS canPin,"+
   "(m.avatar='removed') AS deleted,(m.avatar!='removed' AND "+permission+") AS canDelete,"+
   '(SELECT count(*) FROM likes WHERE message=m.id) AS likes,EXISTS(SELECT 1 FROM likes WHERE message=m.id AND viewer=?1) AS liked,'+
-  '('+liveReplies+') AS replies FROM messages m LEFT JOIN messages p ON p.id=m.parent ';
+  '('+liveReplies+') AS replies FROM messages m LEFT JOIN messages p ON p.id=m.parent LEFT JOIN guestbook_pins pin ON pin.message=m.id ';
+
+function feedQuery(url,viewer){
+  const thread=id(url.searchParams.get('thread'),true);
+  const cursor=url.searchParams.get('cursor');
+  if(thread){
+    return {thread,sql:select+"WHERE m.thread=?2 AND m.id>?3 AND m.avatar!='removed' ORDER BY m.id LIMIT 21",args:[viewer,thread,id(cursor,true)||0]};
+  }
+  let rank=Number.MAX_SAFE_INTEGER, message=Number.MAX_SAFE_INTEGER;
+  if(cursor!==null){
+    const parts=cursor.split(':');
+    if(parts.length>2 || parts.some(part=>!/^\d+$/.test(part)))fail(400,'分页位置无效。');
+    message=id(parts.at(-1));
+    rank=parts.length===2?id(parts[0]):0;
+  }
+  const sql=select+'WHERE '+visibleThread+' AND (COALESCE(pin.rank,0),m.id)<(?2,?3) ORDER BY pin.rank DESC,m.id DESC LIMIT 21';
+  return {thread,sql,args:[viewer,rank,message]};
+}
+function feedPage(rows,thread){
+  const items=rows.slice(0,20), last=items.at(-1);
+  const next=rows.length>20?(!thread && last.pinOrder?last.pinOrder+':'+last.id:last.id):null;
+  return {items,next};
+}
+const moderatorCheck='EXISTS(SELECT 1 FROM moderators WHERE viewer=?1)';
+const availableMessage="EXISTS(SELECT 1 FROM messages WHERE id=?2 AND thread IS NULL AND avatar!='removed')";
+function pinStatements(db,viewer,message,pinned){
+  const allowed=moderatorCheck+' AND '+availableMessage;
+  const write=pinned?'INSERT OR IGNORE INTO guestbook_pins(message) SELECT ?2 WHERE '+allowed:
+    'DELETE FROM guestbook_pins WHERE message=?2 AND '+allowed;
+  const read='SELECT '+moderatorCheck+' AS allowed,'+availableMessage+' AS available,COALESCE((SELECT rank FROM guestbook_pins WHERE message=?2),0) AS pinOrder';
+  return [write,read].map(sql=>db.prepare(sql).bind(viewer,message));
+}
+function pinReceipt(row){
+  if(!row.allowed)fail(403,'只有网站作者可以置顶留言。');
+  if(!row.available)fail(404,'这条主留言已不存在。');
+  return json({pinOrder:row.pinOrder});
+}
+
 const visibleThread="m.thread IS NULL AND (m.avatar!='removed' OR EXISTS(SELECT 1 FROM messages r WHERE r.thread=m.id AND r.avatar!='removed'))";
 const token=/^[0-9a-f]{32}$/;
 const dbReady=new WeakMap();
@@ -69,7 +109,7 @@ async function dispatch(req,env,url){
   const path=url.pathname.slice(prefix.length),db=env.DB;
   await ready(db);
   if(req.method==='GET'&&path==='health'){
-    await db.prepare('SELECT id FROM messages LIMIT 1').first();return json({ready:true,moderation:1});
+    await db.prepare('SELECT id FROM messages LIMIT 1').first();return json({ready:true,moderation:1,pinning:1});
   }
   const photo=/^avatars\/([0-9a-f]{64})$/.exec(path);
   if(req.method==='GET'&&photo){
@@ -107,10 +147,9 @@ async function dispatch(req,env,url){
     return json({deleted:true});
   }
   if(req.method==='GET' && path==='messages'){
-    const thread=id(url.searchParams.get('thread'),true),cursor=id(url.searchParams.get('cursor'),true);
-    const stmt=thread?db.prepare(select+"WHERE m.thread=?2 AND m.id>?3 AND m.avatar!='removed' ORDER BY m.id LIMIT 21").bind(viewer,thread,cursor||0):
-      db.prepare(select+'WHERE '+visibleThread+' AND m.id<?2 ORDER BY m.id DESC LIMIT 21').bind(viewer,cursor||Number.MAX_SAFE_INTEGER);
-    const {results}=await stmt.all();return json({items:results.slice(0,20),next:results.length>20?results[19].id:null});
+    const {sql,args,thread}=feedQuery(url,viewer);
+    const {results}=await db.prepare(sql).bind(...args).all();
+    return json(feedPage(results,thread));
   }
   if(req.method==='POST'&&path==='messages'){
     const data=await payload(req);
@@ -130,6 +169,13 @@ async function dispatch(req,env,url){
         .bind(target?.thread??null,parent,author,avatar,body,Date.now(),viewer,data.ticket,parent,parent),lookup]);
     if(!read.results.length)fail(404,'原留言已删除。');
     return receipt(read.results[0],insert.meta.changes?201:200);
+  }
+  const pin=/^messages\/(\d+)\/pin$/.exec(path);
+  if(req.method==='PUT' && pin){
+    const message=id(pin[1]),data=await payload(req);
+    if(typeof data.pinned!=='boolean')fail(400,'置顶状态无效。');
+    const [,read]=await db.batch(pinStatements(db,viewer,message,data.pinned));
+    return pinReceipt(read.results[0]);
   }
   const like=/^messages\/(\d+)\/like$/.exec(path);
   if(req.method==='PUT'&&like){

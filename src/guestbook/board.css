@@ -68,3 +68,7 @@
 #ink-guestbook .gb-removed, #ink-guestbook .gb-device {color:var(--gb-dim);font-size:14px}
 #ink-guestbook .gb-removed {margin:0 0 4px}
 #ink-guestbook .gb-device code {display:block;overflow-wrap:anywhere;user-select:all;margin-top:5px}
+
+#ink-guestbook .gb-pin-label {margin-inline-start:8px;color:var(--gb-accent);font-size:12px;font-weight:600;white-space:nowrap}
+#ink-guestbook .gb-actions .gb-pin {margin-inline-start:auto}
+#ink-guestbook .gb-actions .gb-pin + .gb-delete {margin-inline-start:0}

@@ -13,7 +13,7 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
   let avatar=store.getItem('ink-board-avatar') || '', busy=false, paintRun=0, loading=false;
   let entries=[], next=null, serial=0, syncVersion=0;
   const expanded=new Map(), likeBusy=new Set();
-  let confirming=null, removing=null;
+  let confirming=null, removing=null, pinBusy=false;
   const make=(tag,cls,value)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(value!=null)node.textContent=value;return node;};
   const btn=(cls,label,handler)=>{const b=make('button',cls,label);b.type='button';b.addEventListener('click',handler);return b;};
   function icon(kind) {
@@ -103,7 +103,7 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
         }
         if(root?.deleted && !root.replies)entries=entries.filter(item=>item!==root);
       } else if(row.replies) {
-        Object.assign(row,{deleted:true,canDelete:false,author:'',body:'',avatar:'removed',likes:0,liked:false});
+        Object.assign(row,{deleted:true,canDelete:false,canPin:false,pinOrder:0,author:'',body:'',avatar:'removed',likes:0,liked:false});
       } else entries=entries.filter(item=>item.id!==row.id);
       if(!entries.some(item=>item.id===(row.thread||row.id)))expanded.delete(row.thread||row.id);
       status.textContent='已删除。';
@@ -111,6 +111,29 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
     } catch(error){status.textContent=error.message;listStatus.textContent=error.message;}
     finally {confirming=null;removing=null;++syncVersion;render();}
     await load(false,true);
+  }
+  const feedOrder=(a,b)=>(b.pinOrder||0)-(a.pinOrder||0)||b.id-a.id;
+  function pinControl(row,actions){
+    if(!row.canPin)return;
+    const pinned=!!row.pinOrder, label=pinned?'取消置顶':'置顶';
+    const button=btn('gb-pin',label,async()=>{
+      if(pinBusy)return;
+      pinBusy=true;button.disabled=true;++syncVersion;
+      try {
+        const result=await api('messages/'+row.id+'/pin','PUT',{pinned:!pinned});
+        ++serial;loading=false;more.disabled=false;
+        const current=entries.find(item=>item.id===row.id);
+        if(current){
+          current.pinOrder=result.pinOrder;
+          entries.sort(feedOrder);
+        }
+        status.textContent=result.pinOrder?'已置顶。':'已取消置顶。';
+        render();
+      } catch(error){listStatus.textContent=error.message;}
+      finally {pinBusy=false;button.disabled=false;++syncVersion;}
+      await load(false,true);
+    });
+    button.dataset.action='pin';button.setAttribute('aria-pressed',String(pinned));actions.append(button);
   }
   function deleteControl(row,actions){
     if(!row.canDelete)return;
@@ -136,7 +159,9 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
     } else {
       const author=make('div','gb-author'), img=make('img');img.alt='';img.src=avatarURL(row.avatar);img.loading='lazy';
       const meta=make('div'), time=make('time',null,stamp(row.created));time.dateTime=new Date(row.created).toISOString();time.title=new Date(row.created).toLocaleString('zh-CN');
-      meta.append(make('strong',null,row.author),time);author.append(img,meta);
+      const by=make('strong',null,row.author);
+      if(row.pinOrder)by.append(make('span','gb-pin-label','置顶'));
+      meta.append(by,time);author.append(img,meta);
       const message=make('p','gb-body',row.body);
       if(nested && row.target && row.parent!==row.thread) message.prepend(make('span','gb-target','回复 '+row.target+' · '));
       const like=btn('',null,async()=>{
@@ -152,7 +177,7 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
       drawLike();like.dataset.action='like';
       const reply=btn('',null,()=>selectTarget({id:row.id,author:row.author,thread:row.thread||row.id}));
       reply.append(icon('reply'),document.createTextNode('回复'));reply.setAttribute('aria-label','回复 '+row.author);reply.dataset.action='reply';
-      actions.append(like,reply);deleteControl(row,actions);el.append(author,message);
+      actions.append(like,reply);pinControl(row,actions);deleteControl(row,actions);el.append(author,message);
     }
     el.append(actions);
     if(!nested && row.replies) {
@@ -188,10 +213,9 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
     const run=++serial, version=syncVersion;loading=true;more.disabled=true;
     try {
       const page=await api('messages'+(append&&next?'?cursor='+next:''));
-      if(run!==serial || (quiet && (version!==syncVersion || likeBusy.size || busy)))return;
+      if(run!==serial || (quiet && (version!==syncVersion || likeBusy.size || pinBusy || busy)))return;
       if(quiet && entries.length) {
-        const last=entries.at(-1).id;
-        while(page.next && page.items.at(-1).id>last) {
+        while(page.next && page.items.length<entries.length) {
           const extra=await api('messages?cursor='+page.next);
           page.items.push(...extra.items);page.next=extra.next;
         }
@@ -203,12 +227,14 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
           }
           return [id,fresh];
         }));
-        if(run!==serial || version!==syncVersion || likeBusy.size || busy)return;
+        if(run!==serial || version!==syncVersion || likeBusy.size || pinBusy || busy)return;
         const changed=threads.some(([id,data])=>JSON.stringify(data)!==JSON.stringify(expanded.get(id)));
         if(!changed && JSON.stringify(page.items)===JSON.stringify(entries) && page.next===next)return;
         for(const [id,data] of threads)expanded.set(id,data);
       }
-      entries=append ? [...entries,...page.items] : page.items;next=page.next;
+      const merged=append?[...entries,...page.items]:page.items;
+      entries=[...new Map(merged.map(item=>[item.id,item])).values()].sort(feedOrder);
+      next=page.next;
       listStatus.textContent=entries.length?'':'还没有留言。';render();
     } catch(err) {
       if(run!==serial || quiet)return;
@@ -251,7 +277,7 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
   more.addEventListener('click',()=>load(true));
   load();
   if(refresh) {
-    const update=()=>{if(!document.hidden&&!busy&&!likeBusy.size&&confirming===null)load(false,true);};
+    const update=()=>{if(!document.hidden&&!busy&&!likeBusy.size&&!pinBusy&&confirming===null)load(false,true);};
     window.addEventListener('focus',update);window.setInterval(update,20000);
   }
 }

@@ -1,4 +1,4 @@
-import {mountBoard} from './ui.js?v=88f52fe867dd';
+import {mountBoard} from './ui.js?v=65b6ca6d061b';
 import {makeAvatarPainter} from './avatar.js';
 const base=new URL(document.querySelector('meta[name=guestbook-api]').content,document.baseURI);
 const memory=new Map();
