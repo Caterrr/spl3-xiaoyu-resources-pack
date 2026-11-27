@@ -38,7 +38,7 @@ html[data-game=spl3] [data-edition=spl3],html[data-game=raiders] [data-edition=r
 .preview-column {position:sticky;top:10px}
 .character-stage {
   position:relative;isolation:isolate;overflow:hidden;
-  width:100%;aspect-ratio:1.24;max-height:64svh;
+  width:100%;aspect-ratio:1.24;max-height:min(64svh,max(300px,calc(100svh - 325px)));
   border-radius:17px;background:#171717;
 }
 .character-stage canvas {position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
@@ -52,7 +52,7 @@ html[data-game=spl3] [data-edition=spl3],html[data-game=raiders] [data-edition=r
 .stage-status button {margin-top:8px}
 .stage-tools {justify-content:space-between;min-height:44px;padding:2px 0 4px}
 .stage-tools button {min-height:40px;padding:5px 7px;border-color:transparent;background:transparent;color:var(--editor-muted)}
-#reset-character span {display:inline-block}
+#reset-character span {display:inline-block;--pressed-transform:translateX(-2px) scale(.94)}
 #randomize-character svg {flex:none}
 .editor-actions {display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;border-top:1px solid var(--editor-edge);padding-top:12px}
 .editor-actions h2,.head-field legend,.color-field legend,.field-label {
@@ -145,7 +145,7 @@ html[data-game=spl3] [data-edition=spl3],html[data-game=raiders] [data-edition=r
 @media(prefers-reduced-motion:no-preference) {
   .customizer-layout button,.heading-actions :is(a,button),.choice-button img {transition:color .16s,background-color .16s,border-color .16s,transform .18s}
   .choice-button:not(:disabled):hover img {transform:scale(1.025)}
-  #reset-character:active span {transform:translateX(-1px) scale(.96)}
+  #reset-character:active span {transform:var(--pressed-transform)}
 }
 @media(max-width:760px) {
   .customizer-page #content {padding-top:8px}
