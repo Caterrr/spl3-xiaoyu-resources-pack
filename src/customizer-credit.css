@@ -49,16 +49,47 @@
   cursor: pointer;
   transition: background-color 180ms, color 180ms, transform 160ms var(--ease);
 }
-.credit-actions .credit-secondary { color: #fafafa; background: #363636; border: 1px solid #f2f2f2 }
+.credit-actions .credit-secondary { position: relative; display: grid; padding: 0; touch-action: manipulation }
+.credit-secondary:disabled { opacity: 1; cursor: default }
+.credit-button-face {
+  display: grid;
+  place-items: center;
+  padding: 9px 8px;
+  border: 1px solid #f2f2f2;
+  border-radius: inherit;
+  background: #363636;
+  color: #fafafa;
+  transform: scale(var(--size-factor, 1));
+  transition: transform 350ms cubic-bezier(.22, 1.65, .45, 1), background-color 180ms;
+}
+.credit-secondary:disabled .credit-button-face { transition: transform 160ms ease-in }
+.credit-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: var(--accent);
+  pointer-events: none;
+  animation: credit-burst 420ms cubic-bezier(.16, .8, .36, 1) both;
+}
+.credit-particle:nth-of-type(3n) { background: #fafafa }
+.credit-particle:nth-of-type(3n + 1) { background: #ffae72 }
+@keyframes credit-burst {
+  from { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(.7) }
+  45% { opacity: 1 }
+  to { opacity: 0; transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) scale(.3) }
+}
 .credit-actions .credit-primary { color: #111; background: var(--accent); font-weight: 650 }
-.credit-actions button:active { transform: scale(.98) }
+.credit-actions .credit-primary:active { transform: scale(.98) }
 .credit-actions button:focus-visible { outline: none }
 #credit-dialog[data-keyboard-nav] .credit-actions button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 @media (hover: hover) {
-  .credit-actions .credit-secondary:hover { background: #414141 }
+  .credit-secondary:enabled:hover .credit-button-face { background: #414141 }
   .credit-actions .credit-primary:hover { background: #ff814d }
 }
 @media (forced-colors: active) {
@@ -67,6 +98,10 @@
 }
 @media (prefers-reduced-motion: reduce) {
   #credit-dialog[open], #credit-dialog::backdrop { animation: none }
-  .credit-actions button { transition: none }
-  .credit-actions button:active { transform: none }
+  .credit-actions button, .credit-button-face, .credit-secondary:disabled .credit-button-face { transition: none }
+  .credit-actions .credit-primary:active { transform: none }
+  .credit-particle {
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(calc(var(--distance) / 2));
+    animation: credit-dim-out 180ms linear both;
+  }
 }
