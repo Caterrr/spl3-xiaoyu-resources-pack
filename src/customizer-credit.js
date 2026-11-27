@@ -1,4 +1,4 @@
-import {impactScales, recoilFace, scatterSquares} from './credit-scatter.js?v=f831e0529eac';
+import {impactScales, shrinkFace, scatterSquares} from './credit-scatter.js?v=127cd67a3468';
 
 const dialog = document.querySelector('#credit-dialog');
 const refusal = dialog.querySelector('.credit-secondary');
@@ -22,7 +22,7 @@ async function dismiss() {
 
 refusal.addEventListener('click', async () => {
   if (hits >= impactScales.length || dialog.hasAttribute('data-closing')) return;
-  recoil = recoilFace(face, hits++, recoil);
+  recoil = shrinkFace(face, hits++, recoil);
   if (hits < impactScales.length) return;
   if (document.activeElement === refusal) accept.focus({preventScroll: true});
   refusal.disabled = true;

@@ -4,24 +4,30 @@ const random = (min, max) => min + Math.random() * (max - min);
 
 export const impactScales = [0.8, 0.6, 0.4, 0];
 
-export function recoilFace(face, index, previousAnimation) {
+export function shrinkFace(face, index, previousAnimation) {
   const current = getComputedStyle(face).transform;
   previousAnimation?.cancel();
-  const from = index === 0 ? 1 : impactScales[index - 1];
   const to = impactScales[index];
-  const resting = 'scale(' + to + ')';
+  const resting = `scale(${to})`;
   face.style.transform = resting;
   if (reducedMotion.matches) return;
 
-  const contact = 'scale(' + from * .94 + ',' + from * .78 + ')';
-  const rebound = 'scale(' + to * 1.04 + ',' + to * 1.07 + ')';
+  if (to !== 0) {
+    return face.animate([{transform: current}, {transform: resting}], {
+      duration: 220,
+      easing: 'cubic-bezier(.22, 1, .36, 1)'
+    });
+  }
+
+  const from = impactScales[index - 1];
+  const contact = `scale(${from * .94}, ${from * .78})`;
   return face.animate([
     {transform: current},
     {transform: contact, offset: .16},
     {transform: contact, offset: .37},
-    {transform: to === 0 ? contact : rebound, offset: .78},
+    {transform: contact, offset: .78},
     {transform: resting}
-  ], {duration: to === 0 ? 96 : 185});
+  ], {duration: 96});
 }
 
 export function scatterSquares(button) {

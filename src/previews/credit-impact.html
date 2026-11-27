@@ -69,7 +69,7 @@ label input:checked + span b {color:#68574b}
 </main>
 <canvas class="particles" aria-hidden="true"></canvas>
 <script type="module">
-import {impactScales, recoilFace, scatterSquares} from "../credit-scatter.js?v=f831e0529eac";
+import {impactScales, shrinkFace, scatterSquares} from "../credit-scatter.js?v=127cd67a3468";
 const el = selector => document.querySelector(selector);
 const canvas = el('.particles');
 const ctx = canvas.getContext('2d');
@@ -200,7 +200,7 @@ async function hit() {
   }
   statusLine.textContent=n+' / '+limit+(final?' · 可点「重玩」':'');
   if(mode==='scatter') {
-    recoil=recoilFace(face,n-1,recoil);
+    recoil=shrinkFace(face,n-1,recoil);
     if(final) {
       try {await recoil?.finished;} catch {return;}
       if(token===generation && !notice.hidden) clearScatter=scatterSquares(refusal);
