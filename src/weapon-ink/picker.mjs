@@ -1,12 +1,12 @@
 let profiles;
 function getProfiles() {
-  return profiles??=fetch(new URL('./materials.json',import.meta.url)).then(r=>{
+  return profiles??=fetch(new URL('./materials.json?v=9a6209640033',import.meta.url)).then(r=>{
     if(!r.ok) throw Error('Ink profiles unavailable');
     return r.json();
   }).catch(error=>{profiles=undefined;throw error;});
 }
 function createWorker() {
-  const worker=new Worker(new URL('./worker.mjs',import.meta.url),{type:'module'});
+  const worker=new Worker(new URL('./worker.mjs?v=8a2ae292c541',import.meta.url),{type:'module'});
   const pending=new Map();let seq=0,failed;
   function rejectAll(error) {
     for(const job of pending.values())job.reject(error);

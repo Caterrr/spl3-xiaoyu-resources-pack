@@ -27,10 +27,28 @@ export function colorBlend(raw,profile,hex) {
   const parts=[];let start=0;
   const rgb=new Uint8Array(12), floats=new DataView(rgb.buffer);
   tint.forEach((v,c)=>floats.setFloat32(c*4,v,true));
-  for(const offset of [...profile.offsets].sort((a,b)=>a-b)) {
-    if(offset<start || [255,93,28].some((v,c)=>Math.abs(view.getFloat32(offset+c*4,true)-linear[v])>.00001))
+  const edits=profile.offsets.map(offset=>{
+    if([255,93,28].some((v,c)=>Math.abs(view.getFloat32(offset+c*4,true)-linear[v])>.00001))
       throw Error('Unexpected Blender ink socket');
-    parts.push(raw.subarray(start,offset),rgb);start=offset+12;
+    return {at:offset,skip:12,bytes:rgb};
+  });
+  if(profile.graph) {
+    // Each record edits node links or inserts a MixRGB node. Original image and mesh blocks stay intact.
+    const patch=decompress(Uint8Array.from(atob(profile.graph),c=>c.charCodeAt(0)));
+    const records=new DataView(patch.buffer,patch.byteOffset,patch.byteLength);
+    for(let i=0;i<patch.byteLength;) {
+      const at=records.getUint32(i,true), skip=records.getUint32(i+4,true);
+      const size=records.getUint32(i+8,true), color=records.getUint32(i+12,true);
+      i+=16;
+      if(i+size>patch.length)throw Error('Invalid Blender paint node');
+      const bytes=patch.subarray(i,i+size);
+      if(color!==0xffffffff)bytes.set(rgb,color);
+      edits.push({at,skip,bytes});i+=size;
+    }
+  }
+  for(const {at,skip,bytes} of edits.sort((a,b)=>a.at-b.at || a.skip-b.skip)) {
+    if(at<start || at+skip>raw.length)throw Error('Invalid Blender material patch');
+    parts.push(raw.subarray(start,at),bytes);start=at+skip;
   }
   return new Blob([...parts,raw.subarray(start)],{type:'application/octet-stream'});
 }
@@ -50,20 +68,21 @@ function packGlb(doc,parts,binSize) {
   return new Blob([head,json,new Uint8Array(extra).fill(32),bh,...parts,new Uint8Array(end)],{type:'model/gltf-binary'});
 }
 // Centre-of-texel sampling matches the source material bake, including the wrap mode at the UV seam.
-function sampler(image,w,h,repeat,srgb) {
+function sampler(image,w,h,repeat,srgb,transform={}) {
+  const [sx,sy]=transform.scale||[1,1], [dx,dy]=transform.offset||[0,0];
   const {width,height,rgba}=image, table=srgb?linear:null;
   const sample=(p,c)=>table?table[rgba[p+c]]:rgba[p+c]/255;
-  if(w===width && h===height) return (x,y,c)=>sample((y*w+x)*4,c);
-  function axis(size,target) {
+  if(w===width && h===height && sx===1 && sy===1 && dx===0 && dy===0) return (x,y,c)=>sample((y*w+x)*4,c);
+  function axis(size,target,scale,offset,wrap) {
     const lo=new Int32Array(target), hi=new Int32Array(target), t=new Float32Array(target);
-    const edge=n=>repeat?(n+size)%size:Math.min(size-1,Math.max(0,n));
+    const edge=n=>wrap?((n%size)+size)%size:Math.min(size-1,Math.max(0,n));
     for(let i=0;i<target;i++) {
-      const coord=(i+.5)*size/target-.5, a=Math.floor(coord);
+      const coord=((i+.5)*scale/target+offset)*size-.5, a=Math.floor(coord);
       lo[i]=edge(a);hi[i]=edge(a+1);t[i]=coord-a;
     }
     return {lo,hi,t};
   }
-  const xx=axis(width,w), yy=axis(height,h);
+  const xx=axis(width,w,sx,dx,repeat[0]??repeat), yy=axis(height,h,sy,dy,repeat[1]??repeat);
   return (x,y,c)=>{
     const a=yy.lo[y]*width, b=yy.hi[y]*width, tx=xx.t[x], ty=yy.t[y];
     return ((1-tx)*sample(4*(a+xx.lo[x]),c)+tx*sample(4*(a+xx.hi[x]),c))*(1-ty)
@@ -91,12 +110,41 @@ export async function prepareInk(glb,raw,profile) {
     }
     targets.push({material:row.material,key});
   }
-  return {doc,bin,recipes,targets};
+  // The paint shader uses its own _cp0 mask. Preserve the already-assembled albedo
+  // outside that mask, including team trim baked into the grip of a shared atlas.
+  const paint=[];
+  for(const row of profile.paint||[]) {
+    const pbr=doc.materials[row.material].pbrMetallicRoughness, slot=pbr.baseColorTexture;
+    const maskImage=images[row.mask];
+    let original;
+    if(slot) {
+      const image=doc.images[doc.textures[slot.index].source], view=doc.bufferViews[image.bufferView];
+      const offset=view.byteOffset||0;
+      original=await readPng(bin.subarray(offset,offset+view.byteLength));
+    }
+    const transform=slot?.extensions?.KHR_texture_transform||{};
+    const [sx,sy]=transform.scale||[1,1];
+    const width=Math.max(maskImage.width,(original?.width||1)*sx);
+    const height=Math.max(maskImage.height,(original?.height||1)*sy);
+    const sourceSampler=slot && doc.samplers?.[doc.textures[slot.index].sampler];
+    const wrap=[sourceSampler?.wrapS!==33071,sourceSampler?.wrapT!==33071];
+    const mask=sampler(maskImage,width,height,profile.images[row.mask][2],false);
+    const base=original?sampler(original,width,height,wrap,true,transform):()=>1;
+    const alpha=original?sampler(original,width,height,wrap,false,transform):()=>1;
+    paint.push({material:row.material,width,height,base,alpha,mask});
+  }
+  return {doc,bin,recipes,targets,paint};
 }
 export async function colorGlb(prepared,hex) {
   const {bin,recipes,targets}=prepared, doc=structuredClone(prepared.doc);
   const tint=colorChannels(hex), parts=[bin], generated=new Map();
   let size=bin.length;
+  async function appendImage(width,height,rgba) {
+    const png=await writePng({width,height,rgba}), pad=padding(size);
+    parts.push(new Uint8Array(pad),png);size+=pad;
+    const bufferView=doc.bufferViews.push({buffer:0,byteOffset:size,byteLength:png.size})-1;
+    size+=png.size;return doc.images.push({bufferView,mimeType:'image/png'})-1;
+  }
   for(const [key,{original,w,h,base,mask,ao}] of recipes) {
     const {width,height}=original, rgba=original.rgba.slice();
     const resized=w!==width || h!==height;
@@ -115,15 +163,28 @@ export async function colorGlb(prepared,hex) {
         for(let c=0;c<3;c++)rgba[p+c]=Math.round(255*sample(x,y,c));
       }
     }
-    const png=await writePng({width,height,rgba}), pad=padding(size);
-    parts.push(new Uint8Array(pad),png);size+=pad;
-    const bufferView=doc.bufferViews.push({buffer:0,byteOffset:size,byteLength:png.size})-1;
-    size+=png.size;generated.set(key,doc.images.push({bufferView,mimeType:'image/png'})-1);
+    generated.set(key,await appendImage(width,height,rgba));
   }
   for(const {material,key} of targets) {
     const slot=doc.materials[material].pbrMetallicRoughness.baseColorTexture;
     const texture={...doc.textures[slot.index],source:generated.get(key)};
     slot.index=doc.textures.push(texture)-1;
+  }
+  for(const {material,width,height,mask,base,alpha} of prepared.paint) {
+    const pbr=doc.materials[material].pbrMetallicRoughness;
+    const factor=pbr.baseColorFactor||[1,1,1,1], slot=pbr.baseColorTexture;
+    const rgba=new Uint8Array(width*height*4);
+    for(let y=0,p=0;y<height;y++)for(let x=0;x<width;x++,p+=4) {
+      const coverage=mask(x,y,0);
+      for(let c=0;c<3;c++)rgba[p+c]=toByte((1-coverage)*base(x,y,c)*factor[c]+coverage*tint[c]);
+      rgba[p+3]=Math.round(255*alpha(x,y,3));
+    }
+    const image=await appendImage(width,height,rgba);
+    const texture=slot?{...doc.textures[slot.index]}:{};
+    texture.source=image;
+    // The source UV transform was baked into the base layer. The paint mask uses UV0.
+    pbr.baseColorTexture={index:doc.textures.push(texture)-1};
+    pbr.baseColorFactor=[1,1,1,factor[3]];
   }
   return packGlb(doc,parts,size);
 }

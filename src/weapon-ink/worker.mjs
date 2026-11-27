@@ -1,4 +1,4 @@
-import {unpackBlend,prepareInk,colorBlend,colorGlb} from './model.mjs';
+import {unpackBlend,prepareInk,colorBlend,colorGlb} from './model.mjs?v=a40aa361977c';
 
 let native,scene,profile;
 self.onmessage=async ({data})=>{
