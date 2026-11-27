@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three/build/three.module.min.js';
-import {facialControls, portraitCameras, actionCamera, squarePng} from './customizer-portrait.js?v=studio-1';
+import {facialControls, portraitCameras, actionCamera, squarePng} from './customizer-portrait.js?v=bd7137f375b1';
 
 const $ = id => document.getElementById(id);
 const profiles = {

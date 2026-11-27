@@ -77,5 +77,8 @@ export function applyGearMaterials(dist) {
     version(script, 'customizer-blend.js');
     version(dir + 'customizer.html', script, 'customizer.js');
   }
+  version('avatar-studio.js', catalogPath('customizer'));
+  version('avatar-studio.js', 'customizer-spl3-core.js');
+  version('avatar-studio.html', 'avatar-studio.js');
   for (const section of Object.keys(library)) version('library.html', catalogPath(section));
 }

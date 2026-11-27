@@ -1,4 +1,4 @@
-import {mountBoard} from './ui.js?v=portrait-studio-1';
+import {mountBoard} from './ui.js?v=5022b3c88419';
 const base=new URL(document.querySelector('meta[name=guestbook-api]').content,document.baseURI);
 const memory=new Map();
 let store;
