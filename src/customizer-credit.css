@@ -19,6 +19,23 @@
 @keyframes credit-dim-out { to { opacity: 0 } }
 #credit-title { margin: 0 0 10px; color: #c1c1c1; font: inherit; font-size: 15px }
 #credit-author { margin: 0; font-size: clamp(21px, 5vw, 26px); font-weight: 650; line-height: 1.4 }
+#credit-author a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  border-radius: 4px;
+}
+#credit-author img { flex: none; border-radius: 50% }
+.credit-platform { display: block; color: #c1c1c1; font-size: 13px; font-weight: 400 }
+.credit-name { text-decoration: underline; text-decoration-color: #888; text-underline-offset: .17em; text-decoration-thickness: 1px }
+#credit-author a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px }
+@media (hover: hover) {
+  #credit-author a:hover .credit-name { color: var(--accent); text-decoration-color: currentColor }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .credit-name { transition: color 180ms ease, text-decoration-color 180ms ease }
+}
 .credit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px }
 .credit-actions button {
   flex: 1 1 auto;
