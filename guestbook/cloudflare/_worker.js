@@ -3,13 +3,20 @@ const prefix='/api/guestbook/';
 const schema=[
   'CREATE TABLE IF NOT EXISTS avatars(id TEXT PRIMARY KEY,png BLOB NOT NULL)',
   'CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY,thread INTEGER REFERENCES messages(id),parent INTEGER REFERENCES messages(id),author TEXT NOT NULL,avatar TEXT NOT NULL REFERENCES avatars(id),body TEXT NOT NULL,created INTEGER NOT NULL,viewer TEXT NOT NULL,ticket TEXT NOT NULL,UNIQUE(viewer,ticket))',
+  'CREATE TABLE IF NOT EXISTS moderators(viewer TEXT PRIMARY KEY)',
+  'CREATE INDEX IF NOT EXISTS guestbook_avatar_refs ON messages(avatar)',
   'CREATE INDEX IF NOT EXISTS message_thread ON messages(thread,id)',
   'CREATE TABLE IF NOT EXISTS likes(message INTEGER NOT NULL REFERENCES messages(id),viewer TEXT NOT NULL,PRIMARY KEY(message,viewer))',
   'CREATE TABLE IF NOT EXISTS quota(bucket INTEGER NOT NULL,source TEXT NOT NULL,n INTEGER NOT NULL,PRIMARY KEY(bucket,source))'
 ];
-const select='SELECT m.id,m.thread,m.parent,m.author,m.avatar,m.body,m.created,p.author AS target,'+
-  '(SELECT count(*) FROM likes WHERE message=m.id) AS likes,EXISTS(SELECT 1 FROM likes WHERE message=m.id AND viewer=?) AS liked,'+
-  '(SELECT count(*) FROM messages WHERE thread=m.id) AS replies FROM messages m LEFT JOIN messages p ON p.id=m.parent ';
+const removed='removed';
+const permission='(m.viewer=?1 OR EXISTS(SELECT 1 FROM moderators WHERE viewer=?1))';
+const liveReplies="SELECT count(*) FROM messages r WHERE r.thread=m.id AND r.avatar!='removed'";
+const select="SELECT m.id,m.thread,m.parent,m.author,m.avatar,m.body,m.created,NULLIF(p.author,'') AS target,"+
+  "(m.avatar='removed') AS deleted,(m.avatar!='removed' AND "+permission+") AS canDelete,"+
+  '(SELECT count(*) FROM likes WHERE message=m.id) AS likes,EXISTS(SELECT 1 FROM likes WHERE message=m.id AND viewer=?1) AS liked,'+
+  '('+liveReplies+') AS replies FROM messages m LEFT JOIN messages p ON p.id=m.parent ';
+const visibleThread="m.thread IS NULL AND (m.avatar!='removed' OR EXISTS(SELECT 1 FROM messages r WHERE r.thread=m.id AND r.avatar!='removed'))";
 const token=/^[0-9a-f]{32}$/;
 const dbReady=new WeakMap();
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
@@ -62,7 +69,7 @@ async function dispatch(req,env,url){
   const path=url.pathname.slice(prefix.length),db=env.DB;
   await ready(db);
   if(req.method==='GET'&&path==='health'){
-    await db.prepare('SELECT id FROM messages LIMIT 1').first();return json({ready:true});
+    await db.prepare('SELECT id FROM messages LIMIT 1').first();return json({ready:true,moderation:1});
   }
   const photo=/^avatars\/([0-9a-f]{64})$/.exec(path);
   if(req.method==='GET'&&photo){
@@ -73,10 +80,36 @@ async function dispatch(req,env,url){
   const who=req.headers.get('x-guest-id')||'';
   if(!token.test(who))fail(400,'无法识别访客，请刷新页面。');
   const viewer=await digest(who);
+  // Only the authenticated D1 dashboard can enroll an author's browser.
+  if(req.method==='GET' && path==='device'){
+    const admin=await db.prepare('SELECT 1 AS yes FROM moderators WHERE viewer=?').bind(viewer).first();
+    return json({fingerprint:viewer,moderator:!!admin});
+  }
+  const deletion=/^messages\/(\d+)$/.exec(path);
+  if(req.method==='DELETE' && deletion){
+    const message=id(deletion[1]);
+    const row=await db.prepare('SELECT m.avatar,'+permission+' AS allowed FROM messages m WHERE m.id=?2').bind(viewer,message).first();
+    if(!row)fail(404,'这条留言已不存在。');
+    if(!row.allowed)fail(403,'你没有删除这条留言的权限。');
+    if(row.avatar===removed)return json({deleted:true});
+    await limit(req,db,'delete',100,viewer);
+    const allowed='(viewer=? OR EXISTS(SELECT 1 FROM moderators WHERE viewer=?))';
+    const [,update]=await db.batch([
+      db.prepare("INSERT OR IGNORE INTO avatars(id,png) VALUES('removed',X'')"),
+      db.prepare("UPDATE messages SET author='',body='',avatar='removed' WHERE id=? AND avatar!='removed' AND "+allowed+" RETURNING id").bind(message,viewer,viewer),
+      db.prepare("DELETE FROM likes WHERE message=? AND EXISTS(SELECT 1 FROM messages WHERE id=? AND avatar='removed')").bind(message,message),
+      db.prepare('DELETE FROM avatars WHERE id=? AND NOT EXISTS(SELECT 1 FROM messages WHERE avatar=?)').bind(row.avatar,row.avatar)
+    ]);
+    if(!update.results.length){
+      const current=await db.prepare('SELECT avatar FROM messages WHERE id=?').bind(message).first();
+      if(current?.avatar!==removed)fail(403,'删除权限已变更，请刷新。');
+    }
+    return json({deleted:true});
+  }
   if(req.method==='GET' && path==='messages'){
     const thread=id(url.searchParams.get('thread'),true),cursor=id(url.searchParams.get('cursor'),true);
-    const stmt=thread?db.prepare(select+'WHERE m.thread=? AND m.id>? ORDER BY m.id LIMIT 21').bind(viewer,thread,cursor||0):
-      db.prepare(select+'WHERE m.thread IS NULL AND m.id<? ORDER BY m.id DESC LIMIT 21').bind(viewer,cursor||Number.MAX_SAFE_INTEGER);
+    const stmt=thread?db.prepare(select+"WHERE m.thread=?2 AND m.id>?3 AND m.avatar!='removed' ORDER BY m.id LIMIT 21").bind(viewer,thread,cursor||0):
+      db.prepare(select+'WHERE '+visibleThread+' AND m.id<?2 ORDER BY m.id DESC LIMIT 21').bind(viewer,cursor||Number.MAX_SAFE_INTEGER);
     const {results}=await stmt.all();return json({items:results.slice(0,20),next:results.length>20?results[19].id:null});
   }
   if(req.method==='POST'&&path==='messages'){
@@ -87,21 +120,26 @@ async function dispatch(req,env,url){
     const lookup=db.prepare('SELECT id,thread,parent,author,body,avatar FROM messages WHERE viewer=? AND ticket=?').bind(viewer,data.ticket);
     const receipt=(row,status)=>{if(!row||row.parent!==parent||row.author!==author||row.body!==body||row.avatar!==avatar)fail(409,'同一次发送的内容已更改。');return json({id:row.id,thread:row.thread},status);};
     const old=await lookup.first();if(old)return receipt(old,200);
-    const target=parent&&await db.prepare('SELECT COALESCE(thread,id) AS thread FROM messages WHERE id=?').bind(parent).first();
+    const target=parent&&await db.prepare("SELECT COALESCE(thread,id) AS thread FROM messages WHERE id=? AND avatar!='removed'").bind(parent).first();
     if(parent&&!target)fail(404,'原留言已不存在。');
     await limit(req,db,'post',20,viewer);
-    const [,insert,read]=await db.batch([db.prepare('INSERT OR IGNORE INTO avatars VALUES(?,?)').bind(avatar,bytes.buffer),
-      db.prepare('INSERT OR IGNORE INTO messages(thread,parent,author,avatar,body,created,viewer,ticket) VALUES(?,?,?,?,?,?,?,?)')
-        .bind(target?.thread??null,parent,author,avatar,body,Date.now(),viewer,data.ticket),lookup]);
+    const liveParent="(? IS NULL OR EXISTS(SELECT 1 FROM messages WHERE id=? AND avatar!='removed'))";
+    const [,insert,read]=await db.batch([
+      db.prepare('INSERT OR IGNORE INTO avatars(id,png) SELECT ?,? WHERE '+liveParent).bind(avatar,bytes.buffer,parent,parent),
+      db.prepare('INSERT OR IGNORE INTO messages(thread,parent,author,avatar,body,created,viewer,ticket) SELECT ?,?,?,?,?,?,?,? WHERE '+liveParent)
+        .bind(target?.thread??null,parent,author,avatar,body,Date.now(),viewer,data.ticket,parent,parent),lookup]);
+    if(!read.results.length)fail(404,'原留言已删除。');
     return receipt(read.results[0],insert.meta.changes?201:200);
   }
   const like=/^messages\/(\d+)\/like$/.exec(path);
   if(req.method==='PUT'&&like){
     const n=id(like[1]),data=await payload(req);if(typeof data.liked!=='boolean')fail(400,'点赞状态无效。');
-    if(!await db.prepare('SELECT id FROM messages WHERE id=?').bind(n).first())fail(404,'原留言已不存在。');
     await limit(req,db,'like',100,viewer);
-    const [,read]=await db.batch([db.prepare(data.liked?'INSERT OR IGNORE INTO likes VALUES(?,?)':'DELETE FROM likes WHERE message=? AND viewer=?').bind(n,viewer),
-      db.prepare('SELECT count(*) AS likes,EXISTS(SELECT 1 FROM likes WHERE message=? AND viewer=?) AS liked FROM likes WHERE message=?').bind(n,viewer,n)]);
+    const change=data.liked
+      ? db.prepare("INSERT OR IGNORE INTO likes(message,viewer) SELECT id,? FROM messages WHERE id=? AND avatar!='removed'").bind(viewer,n)
+      : db.prepare('DELETE FROM likes WHERE message=? AND viewer=?').bind(n,viewer);
+    const [,read]=await db.batch([change,db.prepare("SELECT (SELECT count(*) FROM likes WHERE message=?1) AS likes,EXISTS(SELECT 1 FROM likes WHERE message=?1 AND viewer=?2) AS liked FROM messages WHERE id=?1 AND avatar!='removed'").bind(n,viewer)]);
+    if(!read.results.length)fail(404,'原留言已删除。');
     return json({likes:read.results[0].likes,liked:!!read.results[0].liked});
   }
   fail(404,'找不到这个操作。');
@@ -112,6 +150,6 @@ export default {async fetch(req,env){
   let res;
   try{res=req.method==='OPTIONS'?new Response(null,{status:204}):await dispatch(req,env,url);}
   catch(e){if(!e.status)console.error('guestbook: '+e.name);res=json({error:e.status?e.message:'留言服务暂时不可用。'},e.status||503);}
-  if(origin && url.pathname.startsWith(prefix)){res.headers.set('Access-Control-Allow-Origin',origin);res.headers.set('Vary','Origin');res.headers.set('Access-Control-Allow-Methods','GET, POST, PUT, OPTIONS');res.headers.set('Access-Control-Allow-Headers','Content-Type, X-Guest-Id');res.headers.set('Access-Control-Max-Age','86400');}
+  if(origin && url.pathname.startsWith(prefix)){res.headers.set('Access-Control-Allow-Origin',origin);res.headers.set('Vary','Origin');res.headers.set('Access-Control-Allow-Methods','GET, POST, PUT, DELETE, OPTIONS');res.headers.set('Access-Control-Allow-Headers','Content-Type, X-Guest-Id');res.headers.set('Access-Control-Max-Age','86400');}
   return res;
 }};

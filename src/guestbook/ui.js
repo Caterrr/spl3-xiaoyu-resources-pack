@@ -13,6 +13,7 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
   let avatar=store.getItem('ink-board-avatar') || '', busy=false, paintRun=0, loading=false;
   let entries=[], next=null, serial=0, syncVersion=0;
   const expanded=new Map(), likeBusy=new Set();
+  let confirming=null, removing=null;
   const make=(tag,cls,value)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(value!=null)node.textContent=value;return node;};
   const btn=(cls,label,handler)=>{const b=make('button',cls,label);b.type='button';b.addEventListener('click',handler);return b;};
   function icon(kind) {
@@ -85,28 +86,75 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
     if(age<1)return '刚刚';if(age<60)return Math.floor(age)+' 分钟前';if(age<1440)return Math.floor(age/60)+' 小时前';
     return date.toLocaleDateString('zh-CN',{month:'short',day:'numeric',...(date.getFullYear()!==new Date().getFullYear()?{year:'numeric'}:{})});
   }
+  async function removeMessage(row) {
+    if(removing!==null)return;
+    removing=row.id;++syncVersion;render();
+    try {
+      await api('messages/'+row.id,'DELETE');
+      ++serial;loading=false;more.disabled=false;
+      if(target?.id===row.id)selectTarget(null,false);
+      if(row.thread){
+        const root=entries.find(item=>item.id===row.thread);
+        if(root)root.replies=Math.max(0,root.replies-1);
+        const open=expanded.get(row.thread);
+        if(open) {
+          open.items=open.items.filter(item=>item.id!==row.id);
+          for(const item of open.items)if(item.parent===row.id)item.target=null;
+        }
+        if(root?.deleted && !root.replies)entries=entries.filter(item=>item!==root);
+      } else if(row.replies) {
+        Object.assign(row,{deleted:true,canDelete:false,author:'',body:'',avatar:'removed',likes:0,liked:false});
+      } else entries=entries.filter(item=>item.id!==row.id);
+      if(!entries.some(item=>item.id===(row.thread||row.id)))expanded.delete(row.thread||row.id);
+      status.textContent='已删除。';
+      listStatus.textContent=entries.length?'':'还没有留言。';
+    } catch(error){status.textContent=error.message;listStatus.textContent=error.message;}
+    finally {confirming=null;removing=null;++syncVersion;render();}
+    await load(false,true);
+  }
+  function deleteControl(row,actions){
+    if(!row.canDelete)return;
+    if(confirming!==row.id){
+      const button=btn('gb-delete','删除',()=>{if(removing!==null)return;confirming=row.id;render();
+        feed.querySelector('[data-id="'+row.id+'"] [data-action="cancel-delete"]')?.focus({preventScroll:true});});
+      button.dataset.action='delete';button.setAttribute('aria-label','删除'+row.author+'的'+(row.thread?'回复':'留言'));
+      actions.append(button);return;
+    }
+    const group=make('div','gb-confirm');group.setAttribute('role','group');group.setAttribute('aria-label','确认删除');
+    group.append(make('span','',row.replies?'删除这条留言？已有回复会保留。':(row.thread?'删除这条回复？':'删除这条留言？')));
+    const cancel=btn('','取消',()=>{confirming=null;render();
+      feed.querySelector('[data-id="'+row.id+'"] [data-action="delete"]')?.focus({preventScroll:true});});
+    cancel.dataset.action='cancel-delete';
+    const ok=btn('gb-delete-confirm',removing===row.id?'删除中…':'确定删除',()=>removeMessage(row));
+    cancel.disabled=ok.disabled=removing!==null;group.append(cancel,ok);actions.append(group);
+  }
   function article(row, nested=false) {
     const el=make('article',nested?'gb-reply':'gb-post');el.dataset.id=row.id;
-    const author=make('div','gb-author'), img=make('img');img.alt='';img.src=avatarURL(row.avatar);img.loading='lazy';
-    const meta=make('div'), time=make('time',null,stamp(row.created));time.dateTime=new Date(row.created).toISOString();time.title=new Date(row.created).toLocaleString('zh-CN');
-    meta.append(make('strong',null,row.author),time);author.append(img,meta);
-    const message=make('p','gb-body',row.body);
-    if(nested && row.parent!==row.thread) message.prepend(make('span','gb-target','回复 '+row.target+' · '));
     const actions=make('div','gb-actions');
-    const like=btn('',null,async()=>{
-      if(likeBusy.has(row.id)) return;
-      likeBusy.add(row.id);like.disabled=true;++syncVersion;
-      try {
-        const result=await api('messages/'+row.id+'/like','PUT',{liked:!row.liked});
-        Object.assign(row,result);drawLike();
-      } catch(error) {listStatus.textContent=error.message;}
-      finally {likeBusy.delete(row.id);like.disabled=false;++syncVersion;}
-    });
-    function drawLike(){like.replaceChildren(icon('heart'),make('span',null,row.likes||'赞'));like.setAttribute('aria-label',(row.liked?'取消点赞':'点赞')+'，'+row.likes+' 个赞');like.setAttribute('aria-pressed',String(!!row.liked));}
-    drawLike();like.dataset.action='like';
-    const reply=btn('',null,()=>selectTarget({id:row.id,author:row.author,thread:row.thread||row.id}));
-    reply.append(icon('reply'),document.createTextNode('回复'));reply.setAttribute('aria-label','回复 '+row.author);reply.dataset.action='reply';
-    actions.append(like,reply);el.append(author,message,actions);
+    if(row.deleted){
+      el.append(make('p','gb-removed','这条留言已删除'));
+    } else {
+      const author=make('div','gb-author'), img=make('img');img.alt='';img.src=avatarURL(row.avatar);img.loading='lazy';
+      const meta=make('div'), time=make('time',null,stamp(row.created));time.dateTime=new Date(row.created).toISOString();time.title=new Date(row.created).toLocaleString('zh-CN');
+      meta.append(make('strong',null,row.author),time);author.append(img,meta);
+      const message=make('p','gb-body',row.body);
+      if(nested && row.target && row.parent!==row.thread) message.prepend(make('span','gb-target','回复 '+row.target+' · '));
+      const like=btn('',null,async()=>{
+        if(likeBusy.has(row.id)) return;
+        likeBusy.add(row.id);like.disabled=true;++syncVersion;
+        try {
+          const result=await api('messages/'+row.id+'/like','PUT',{liked:!row.liked});
+          Object.assign(row,result);drawLike();
+        } catch(error) {listStatus.textContent=error.message;}
+        finally {likeBusy.delete(row.id);like.disabled=false;++syncVersion;}
+      });
+      function drawLike(){like.replaceChildren(icon('heart'),make('span',null,row.likes||'赞'));like.setAttribute('aria-label',(row.liked?'取消点赞':'点赞')+'，'+row.likes+' 个赞');like.setAttribute('aria-pressed',String(!!row.liked));}
+      drawLike();like.dataset.action='like';
+      const reply=btn('',null,()=>selectTarget({id:row.id,author:row.author,thread:row.thread||row.id}));
+      reply.append(icon('reply'),document.createTextNode('回复'));reply.setAttribute('aria-label','回复 '+row.author);reply.dataset.action='reply';
+      actions.append(like,reply);deleteControl(row,actions);el.append(author,message);
+    }
+    el.append(actions);
     if(!nested && row.replies) {
       const thread=expanded.get(row.id);
       const toggle=btn('gb-thread-toggle',thread?'收起回复':'查看 '+row.replies+' 条回复',async()=>{
@@ -203,7 +251,7 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
   more.addEventListener('click',()=>load(true));
   load();
   if(refresh) {
-    const update=()=>{if(!document.hidden&&!busy&&!likeBusy.size)load(false,true);};
+    const update=()=>{if(!document.hidden&&!busy&&!likeBusy.size&&confirming===null)load(false,true);};
     window.addEventListener('focus',update);window.setInterval(update,20000);
   }
 }

@@ -60,3 +60,11 @@
   #ink-guestbook .gb-options {gap:7px}
 }
 @media (pointer:coarse){#ink-guestbook button {min-height:44px} #ink-guestbook select,#ink-guestbook input[type=color]{height:44px}}
+
+#ink-guestbook .gb-actions .gb-delete {margin-inline-start:auto}
+#ink-guestbook .gb-confirm {display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;flex-basis:100%;color:var(--gb-dim);font-size:14px}
+#ink-guestbook .gb-confirm span {margin-inline-end:auto}
+#ink-guestbook .gb-actions .gb-delete-confirm {color:var(--gb-accent)}
+#ink-guestbook .gb-removed, #ink-guestbook .gb-device {color:var(--gb-dim);font-size:14px}
+#ink-guestbook .gb-removed {margin:0 0 4px}
+#ink-guestbook .gb-device code {display:block;overflow-wrap:anywhere;user-select:all;margin-top:5px}

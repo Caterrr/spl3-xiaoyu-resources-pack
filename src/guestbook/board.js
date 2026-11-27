@@ -1,4 +1,4 @@
-import {mountBoard} from './ui.js?v=39aa3c49452d';
+import {mountBoard} from './ui.js?v=88f52fe867dd';
 import {makeAvatarPainter} from './avatar.js';
 const base=new URL(document.querySelector('meta[name=guestbook-api]').content,document.baseURI);
 const memory=new Map();
@@ -21,3 +21,14 @@ async function api(path,method='GET',data) {
 }
 const paint=makeAvatarPainter(new URL('./ink-white.webp',import.meta.url),new URL('./ink-black.webp',import.meta.url));
 mountBoard(document.getElementById('ink-guestbook'),{api,avatarURL:id=>new URL('avatars/'+id,base).href,paint,store});
+
+if(location.hash==='#author'){
+  const display=document.createElement('p');
+  display.className='gb-device';display.setAttribute('role','status');
+  document.querySelector('#gb-title').after(display);
+  api('device').then(({fingerprint,moderator})=>{
+    if(moderator){display.textContent='这个浏览器已启用作者管理。';return;}
+    display.textContent='此浏览器尚未授权。作者可以在 Cloudflare 中核对并授权这个浏览器编号。';
+    const code=document.createElement('code');code.textContent=fingerprint;display.append(code);
+  }).catch(e=>{display.textContent=e.message;});
+}
