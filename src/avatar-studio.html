@@ -8,7 +8,7 @@
 <link rel="icon" href="./assets/site-icon.ico">
 <link rel="stylesheet" href="./typography.css?v=a554d1e98007">
 <link rel="stylesheet" href="./avatar-studio.css?v=04c6ce4d7e6d">
-<link rel="stylesheet" href="./customizer-credit.css?v=fe4235ed2335">
+<link rel="stylesheet" href="./customizer-credit.css?v=cf10bc5412cd">
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
 </head>
 <body>
@@ -76,10 +76,9 @@
     </a>
   </p>
   <div class="credit-actions">
-    <button type="button" data-copy aria-live="polite">复制作品链接</button>
-    <button type="button" data-accept autofocus>收到！</button>
+    <button type="button" class="credit-secondary">ok！</button>
+    <button type="button" class="credit-primary" autofocus>收到！</button>
   </div>
-  <p id="credit-fallback" hidden><label for="credit-url">请手动复制作品链接</label><input id="credit-url" type="url" value="https://xhslink.cn/o/8qD1c3InVha" readonly></p>
 </dialog>
 <script>
 (() => {
@@ -89,7 +88,7 @@
     try {sessionStorage.setItem('ink-studio-credit-seen','1');} catch {}
   }, {once:true});
   const credit=document.createElement('script');
-  credit.src='./customizer-credit.js?v=a09436ea2646';
+  credit.src='./customizer-credit.js?v=38479c98efc6';
   document.body.append(credit);
 })();
 </script>

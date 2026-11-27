@@ -49,8 +49,8 @@
   cursor: pointer;
   transition: background-color 180ms, color 180ms, transform 160ms var(--ease);
 }
-.credit-actions [data-copy] { color: #fafafa; background: #363636; border: 1px solid #f2f2f2 }
-.credit-actions [data-accept] { color: #111; background: var(--accent); font-weight: 650 }
+.credit-actions .credit-secondary { color: #fafafa; background: #363636; border: 1px solid #f2f2f2 }
+.credit-actions .credit-primary { color: #111; background: var(--accent); font-weight: 650 }
 .credit-actions button:active { transform: scale(.98) }
 .credit-actions button:focus-visible { outline: none }
 #credit-dialog[data-keyboard-nav] .credit-actions button:focus-visible {
@@ -58,15 +58,13 @@
   outline-offset: 3px;
 }
 @media (hover: hover) {
-  .credit-actions [data-copy]:hover { background: #414141 }
-  .credit-actions [data-accept]:hover { background: #ff814d }
+  .credit-actions .credit-secondary:hover { background: #414141 }
+  .credit-actions .credit-primary:hover { background: #ff814d }
 }
 @media (forced-colors: active) {
   #credit-dialog { outline: 1px solid CanvasText }
   #credit-dialog .credit-actions button:focus-visible { outline: 2px solid Highlight; outline-offset: 2px }
 }
-#credit-fallback { margin: 14px 0 0; font-size: 14px }
-#credit-url { display: block; width: 100%; margin-top: 5px; padding: 8px; font: inherit }
 @media (prefers-reduced-motion: reduce) {
   #credit-dialog[open], #credit-dialog::backdrop { animation: none }
   .credit-actions button { transition: none }
