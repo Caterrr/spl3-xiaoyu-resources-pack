@@ -308,21 +308,14 @@ async function init(){
       }catch(e){downloadStatus.textContent='下载未完成，请重新点击下载。';console.error(e);}
       finally{exporting=false;updateDownload();}
     }
-    portraitButton.addEventListener('click', async () => {
+    portraitButton.addEventListener('click', () => {
       if (portraitButton.disabled) return;
-      exporting = true;
-      updateDownload();
-      try {
-        const {openPortrait} = await import('../customizer-portrait.js?v=cd68a732e424');
-        if (!hasError) await openPortrait({model, renderer, sourceScene:scene, render, gameName, currentPose:previewPose, poses:core.previewPoses, camera});
-      } catch (error) {
-        downloadStatus.textContent = '拍照未能打开，请重试。';
-        console.error(error);
-      } finally {
-        exporting = false;
-        updateDownload();
-        portraitButton.focus({preventScroll:true});
-      }
+      const url=new URL('../avatar-studio.html',location.href);
+      url.searchParams.set('from','preview');
+      url.searchParams.set('game',gameKey);
+      // Carry the active outfit even when the user chose not to persist a change.
+      try {sessionStorage.setItem('ink-studio-source',JSON.stringify({game:gameKey,state,pose:previewPose}));} catch {}
+      location.assign(url.href);
     });
     downloadPng.addEventListener('click',()=>downloadModel('png'));
     download.addEventListener('click',()=>downloadModel('glb'));

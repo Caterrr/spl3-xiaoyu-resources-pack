@@ -42,22 +42,17 @@
 #ink-guestbook .gb-reply .gb-body {margin:6px 0 0}
 #ink-guestbook .gb-target, #ink-guestbook .gb-replying {color:var(--gb-dim);font-size:14px}
 #ink-guestbook .gb-replying {margin-top:12px;border-bottom:1px solid var(--gb-edge)}
-#ink-guestbook .gb-picker {margin:16px 0; display:grid; align-items:center; grid-template-columns:112px minmax(0,1fr); gap:14px; padding-block:16px; border-block:1px solid var(--gb-edge)}
-#ink-guestbook canvas {display:block; width:100%; max-width:128px; border-radius:50%;aspect-ratio:1}
-#ink-guestbook .gb-options {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
-#ink-guestbook .gb-options label {display:grid;gap:3px;min-width:0;color:var(--gb-dim);font-size:13px}
-#ink-guestbook select, #ink-guestbook input[type=color] {background:#252525; width:100%; min-width:0; border:1px solid #484848;border-radius:6px;height:36px}
-#ink-guestbook select {padding:0 5px}
-#ink-guestbook input[type=color] {padding:3px;cursor:pointer}
-#ink-guestbook .gb-picker-actions {grid-column:1/-1; justify-content:flex-end;flex-wrap:wrap}
-#ink-guestbook .gb-picker-actions a, #ink-guestbook .gb-more {color:var(--gb-fg);font-size:14px}
-#ink-guestbook .gb-picker-actions a {margin-right:auto;text-underline-offset:3px}
+#ink-guestbook .gb-invite {display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .29s ease,visibility 0s .29s}
+#ink-guestbook .gb-invite[data-open=true] {grid-template-rows:1fr;visibility:visible;transition-delay:0s}
+#ink-guestbook .gb-slide {min-height:0;overflow:hidden}
+#ink-guestbook .gb-invite-line {margin:3px 0 13px;padding:13px 15px;background:#222;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;opacity:0;transform:translateY(-10px);transition:transform .29s ease,opacity .22s ease;font-size:14px}
+#ink-guestbook .gb-invite[data-open=true] .gb-invite-line {opacity:1;transform:none}
+#ink-guestbook .gb-studio-link {flex:none;display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 13px;border-radius:99px;background:var(--gb-accent);color:#151515;font-weight:700;text-decoration:none}
+@media(prefers-reduced-motion:reduce){#ink-guestbook .gb-invite,#ink-guestbook .gb-invite-line{transition:none;transform:none}}
 #ink-guestbook .gb-list-feedback:not(:empty) {margin:18px 0}
 #ink-guestbook .gb-more {display:block;margin:12px auto}
 @media (max-width:480px) {
   #ink-guestbook {width:calc(100% - 24px)}
-  #ink-guestbook .gb-picker {grid-template-columns:68px minmax(0,1fr);gap:10px}
-  #ink-guestbook .gb-options {gap:7px}
 }
 @media (pointer:coarse){#ink-guestbook button {min-height:44px} #ink-guestbook select,#ink-guestbook input[type=color]{height:44px}}
 

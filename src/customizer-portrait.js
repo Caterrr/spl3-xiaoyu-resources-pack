@@ -267,3 +267,5 @@ export async function openPortrait({model, renderer, sourceScene, render, gameNa
   prepare();
   await closed;
 }
+
+export {facialControls, portraitCameras, actionCamera, squarePng};

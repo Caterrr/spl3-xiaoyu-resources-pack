@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="./responsive.css?v=73272f6e6e4f">
 <link rel="stylesheet" href="./page-motion.css?v=fade-420">
 <script src="./page-motion.js?v=fade-420" defer></script>
-<link rel="stylesheet" href="./guestbook/board.css?v=812bc6e799c4">
+<link rel="stylesheet" href="./guestbook/board.css?v=portrait-studio-1">
 </head>
 <body>
 <header class="site-header">
@@ -89,23 +89,19 @@
 </header>
 <main id="ink-guestbook" aria-labelledby="gb-title">
   <h1 id="gb-title">留言板</h1>
-  <form class="gb-compose">
+  <form class="gb-compose" novalidate>
     <div class="gb-identity">
       <button class="gb-avatar-edit" type="button" aria-label="捏头像" aria-controls="gb-picker" aria-expanded="false"><span class="gb-avatar-empty" aria-hidden="true">捏头像</span><img alt="" hidden></button>
       <input name="nickname" maxlength="24" autocomplete="nickname" placeholder="你的昵称" aria-label="你的昵称" required>
     </div>
-    <section class="gb-picker" id="gb-picker" aria-label="捏头像" hidden>
-      <canvas width="128" height="128" aria-label="头像预览" role="img"></canvas>
-      <div class="gb-options">
-        <label>角色<select name="actor"><optgroup label="喷3"><option value="0">鱿鱼 · 女</option><option value="1">鱿鱼 · 男</option><option value="2">章鱼 · 女</option><option value="3">章鱼 · 男</option></optgroup><optgroup label="涂击队"><option value="4">鱿鱼 · 女</option><option value="5">鱿鱼 · 男</option><option value="6">章鱼 · 女</option><option value="7">章鱼 · 男</option></optgroup></select></label>
-        <label>表情<select name="face"><option value="0">自然</option><option value="1">微笑</option><option value="2">嘟嘴</option><option value="3">挑眉</option></select></label>
-        <label>墨色<input type="color" name="ink" value="#ff702e"></label>
-        <label>背景<input type="color" name="paper" value="#e8d6bc"></label>
-      </div>
-      <div class="gb-picker-actions"><a class="gb-customizer" href="./customizer.html?game=spl3&amp;shot=pose">动作取景</a><button type="button" class="gb-apply">使用头像</button></div>
-    </section>
     <div class="gb-replying" hidden><span></span><button type="button" aria-label="取消回复">取消</button></div>
     <textarea name="message" aria-label="留言内容" placeholder="想说点什么？" maxlength="500" rows="2" required></textarea>
+    <section class="gb-invite" id="gb-picker" aria-label="捏头像" inert>
+      <div class="gb-slide"><div class="gb-invite-line">
+        <span>从奇迹鱿鱿捏一个自己的头像</span>
+        <a class="gb-studio-link" href="./avatar-studio.html">去捏头像 <span aria-hidden="true">↗</span></a>
+      </div></div>
+    </section>
     <div class="gb-compose-foot"><span class="gb-feedback" role="status"></span><button class="gb-send" type="submit">发送留言</button></div>
   </form>
   <section class="gb-stream" aria-label="最新留言"></section>
@@ -117,5 +113,5 @@
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="./model-menu.js?v=aa3c34cc0c26" defer></script><script src="./social.js" defer></script><script type="module" src="./guestbook/board.js?v=83dbb911f1a0"></script>
+<script src="./model-menu.js?v=aa3c34cc0c26" defer></script><script src="./social.js" defer></script><script type="module" src="./guestbook/board.js?v=portrait-studio-1"></script>
 </body></html>

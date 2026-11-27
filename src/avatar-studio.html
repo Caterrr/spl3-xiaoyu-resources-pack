@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101010">
+<title>捏头像 · 奇迹鱿鱿</title>
+<link rel="icon" href="./assets/site-icon.ico">
+<link rel="stylesheet" href="./typography.css?v=a554d1e98007">
+<link rel="stylesheet" href="./avatar-studio.css?v=1">
+<link rel="stylesheet" href="./customizer-credit.css?v=e09a22c0d173">
+<script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
+</head>
+<body>
+<main class="studio">
+  <header class="studio-bar">
+    <a id="back" href="./guestbook.html?compose=1"><span aria-hidden="true">←</span> 返回留言板</a>
+    <h1>捏头像<span> / 奇迹鱿鱿</span></h1>
+    <button id="use" class="primary" type="button" disabled>使用头像</button>
+  </header>
+  <div class="workspace">
+    <div class="view-column">
+      <div id="stage" role="region" aria-label="头像取景">
+        <div class="crop" aria-hidden="true"></div>
+        <div id="loading"><span id="load-text" role="status">正在加载角色…</span><button id="retry" type="button" hidden>重试</button></div>
+      </div>
+      <div class="view-foot"><span id="shot-label">正脸 · 1:1</span><button id="save" type="button" disabled>保存 PNG <span aria-hidden="true">↓</span></button></div>
+    </div>
+    <section class="tools" aria-label="头像设置">
+      <nav class="sections" aria-label="设置分类">
+        <button data-panel="camera" aria-pressed="true">镜头</button><button data-panel="actor" aria-pressed="false">角色</button><button data-panel="wear" aria-pressed="false">穿搭</button><button data-panel="paper" aria-pressed="false">背景</button>
+      </nav>
+      <div class="panel" id="camera">
+        <fieldset><legend>取景</legend><div class="segments" id="modes"><button data-mode="head" aria-pressed="true">正脸</button><button data-mode="bust" aria-pressed="false">半身</button><button data-mode="free" aria-pressed="false">自由</button></div></fieldset>
+        <fieldset><legend>表情</legend><div class="chips" id="faces"><button data-face="neutral">自然</button><button data-face="smile">微笑</button><button data-face="pout">嘟嘴</button><button data-face="brow">挑眉</button></div></fieldset>
+        <div id="free-tools" hidden>
+          <fieldset><legend>动作</legend><div class="pose-row"><select id="pose" aria-label="选择动作"></select><button id="dice" class="outline" aria-label="随机动作" title="随机动作"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="1.7"/><g fill="currentColor"><circle cx="8" cy="8" r="1.4"/><circle cx="16" cy="8" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="8" cy="16" r="1.4"/><circle cx="16" cy="16" r="1.4"/></g></svg></button></div></fieldset>
+          <div class="range-list">
+            <label>旋转<input type="range" id="yaw" min="-180" max="180"><output for="yaw"></output></label>
+            <label>俯仰<input type="range" id="pitch" min="-75" max="75"><output for="pitch"></output></label>
+            <label>缩放<input type="range" id="zoom" min="0.5" max="2.5" step=".01"><output for="zoom"></output></label>
+          </div>
+          <div class="fine"><span id="pan-help">拖动画面移动角色，方向键可微调。</span><button id="center">镜头复位</button></div>
+        </div>
+      </div>
+      <div class="panel" id="actor" hidden>
+        <div class="identity">
+          <label>作品<select id="game"><option value="spl3">喷3</option><option value="raiders">涂击队</option></select></label>
+          <label>种族<select id="species"><option value="squid">鱿鱼</option><option value="octopus">章鱼</option></select></label>
+          <label>角色<select id="gender"><option value="female">女</option><option value="male">男</option></select></label>
+        </div>
+        <div class="colors"><label>墨色<input type="color" id="ink"></label><label>肤色<input type="color" id="skin"></label></div>
+        <fieldset><legend>眼睛颜色</legend><div id="eyes" class="swatches"></div></fieldset>
+        <div class="chips" aria-label="五官选项"><button data-feature="hair" aria-pressed="true">发型</button><button data-feature="brow" aria-pressed="false">眉形</button></div>
+        <div class="choices" id="features" aria-label="外观选项"></div>
+      </div>
+      <div class="panel" id="wear" hidden>
+        <label class="stack">服装分类<select id="gear"></select></label>
+        <p id="wear-note" class="muted" hidden></p>
+        <div class="choices" id="outfits" aria-label="服装选项"></div>
+      </div>
+      <div class="panel" id="paper" hidden>
+        <fieldset><legend>背景颜色</legend><div class="swatches" id="papers"></div></fieldset>
+        <label class="custom-color">自选颜色<input type="color" id="background"></label>
+      </div>
+    </section>
+  </div>
+  <p id="feedback" role="status"></p>
+</main>
+<dialog id="credit-dialog" aria-labelledby="credit-title" aria-describedby="credit-author">
+  <h2 id="credit-title">使用请标明作者：</h2>
+  <p id="credit-author">
+    <a href="https://www.xiaohongshu.com/user/profile/5f78bfde000000000101dc31" target="_blank" rel="noopener noreferrer" aria-label="打开喝猫撸奶茶的小红书主页（新标签页）">
+      <img src="./assets/credit-avatar.jpg" alt="" width="48" height="48">
+      <span><span class="credit-platform">小红书</span> <span class="credit-name">@喝猫撸奶茶</span></span>
+    </a>
+  </p>
+  <div class="credit-actions">
+    <button type="button" data-copy aria-live="polite">复制作品链接</button>
+    <button type="button" data-accept autofocus>收到！</button>
+  </div>
+  <p id="credit-fallback" hidden><label for="credit-url">请手动复制作品链接</label><input id="credit-url" type="url" value="https://xhslink.cn/o/8qD1c3InVha" readonly></p>
+</dialog>
+<script>
+(() => {
+  if (['customizer','preview'].includes(new URLSearchParams(location.search).get('from'))) return;
+  try {if (sessionStorage.getItem('ink-studio-credit-seen')) return;} catch {}
+  document.querySelector('#credit-dialog').addEventListener('close', () => {
+    try {sessionStorage.setItem('ink-studio-credit-seen','1');} catch {}
+  }, {once:true});
+  const credit=document.createElement('script');
+  credit.src='./customizer-credit.js?v=71946ff7e468';
+  document.body.append(credit);
+})();
+</script>
+<script type="module" src="./avatar-studio.js?v=1"></script>
+</body>
+</html>

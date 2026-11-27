@@ -1,16 +1,14 @@
-export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
+export function mountBoard(root, {api,avatarURL,store,refresh=true}) {
   const $ = selector => root.querySelector(selector);
   const form=$('.gb-compose'), name=form.elements.nickname, body=form.elements.message;
-  const picker=$('.gb-picker'), edit=$('.gb-avatar-edit'), preview=$('canvas'), avatarImg=edit.querySelector('img');
+  const picker=$('.gb-invite'), edit=$('.gb-avatar-edit'), avatarImg=edit.querySelector('img');
   const status=$('.gb-feedback'), feed=$('.gb-stream'), listStatus=$('.gb-list-feedback'), more=$('.gb-more');
-  const replyBar=$('.gb-replying'), apply=$('.gb-apply'), send=$('.gb-send');
-  const defaultRecipe={actor:0,face:0,ink:'#ff702e',paper:'#e8d6bc'};
+  const replyBar=$('.gb-replying'), studio=$('.gb-studio-link'), send=$('.gb-send');
   const random=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
   const read=(key,fallback)=>{try { return JSON.parse(store.getItem(key)) ?? fallback; } catch {return fallback;}};
   const write=(key,item)=>{try { store.setItem(key,JSON.stringify(item)); } catch {}};
   let drafts=read('ink-board-drafts',{}), target=read('ink-board-target',null);
-  let recipe=read('ink-board-recipe',defaultRecipe);
-  let avatar=store.getItem('ink-board-avatar') || '', busy=false, paintRun=0, loading=false;
+  let avatar=store.getItem('ink-board-avatar') || '', busy=false, loading=false;
   let entries=[], next=null, serial=0, syncVersion=0;
   const expanded=new Map(), likeBusy=new Set();
   let confirming=null, removing=null, pinBusy=false;
@@ -48,39 +46,44 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
     send.textContent=target ? '发送回复':'发送留言';body.placeholder=target ? '写下你的回复…':'想说点什么？';
     body.value=drafts[activeKey()]?.body || '';
   }
-  function readRecipe() {
-    return {actor:Number(form.elements.actor.value),face:Number(form.elements.face.value),ink:form.elements.ink.value,paper:form.elements.paper.value};
-  }
-  async function repaint() {
-    const run=++paintRun;
-    const full=$('.gb-customizer');
-    if(full){
-      const {actor,face,ink,paper}=readRecipe();
-      const query=new URLSearchParams({game:actor<4?'spl3':'raiders',shot:'pose',actor,face,ink,paper});
-      full.href='./customizer.html?'+query;
-    }
-    apply.disabled=true;
-    try {
-      await paint(preview,readRecipe());
-      if(run===paintRun) apply.disabled=false;
-    } catch {if(run===paintRun)status.textContent='头像加载失败，重新打开可重试。';}
-  }
   function openPicker(open) {
-    picker.hidden=!open;edit.setAttribute('aria-expanded',String(open));
-    if(open) {for(const key of Object.keys(defaultRecipe)) form.elements[key].value=recipe[key] ?? defaultRecipe[key];repaint();}
+    picker.inert=!open;
+    picker.dataset.open=String(open);
+    edit.setAttribute('aria-expanded',String(open));
+  }
+  function syncPhoto() {
+    setAvatar(store.getItem('ink-board-avatar') || '');
+    const result=new URL(location.href).searchParams.get('compose');
+    if(!result)return;
+    if(result==='avatar')status.textContent='头像已更新。';
+    openPicker(false);
+    form.scrollIntoView({block:'center'});
+    body.focus({preventScroll:true});
+    const clean=new URL(location.href);
+    clean.searchParams.delete('compose');
+    history.replaceState(history.state,'',clean);
   }
   name.value=store.getItem('ink-board-name') || '';
   name.addEventListener('input',()=>{try {store.setItem('ink-board-name',name.value);} catch {}});
   body.addEventListener('input',rememberDraft);
-  edit.addEventListener('click',()=>openPicker(picker.hidden));
-  picker.addEventListener('input',repaint);
-  apply.addEventListener('click',()=>{
-    const photo=preview.toDataURL('image/png');recipe=readRecipe();setAvatar(photo);
-    try {store.setItem('ink-board-avatar',photo);} catch {}
-    write('ink-board-recipe',recipe);openPicker(false);status.textContent='';edit.focus();
+  let offered=false;
+  function offerAvatar(){
+    if(!avatar&&!offered){offered=true;openPicker(true);}
+  }
+  name.addEventListener('focus',offerAvatar);
+  body.addEventListener('focus',offerAvatar);
+  edit.addEventListener('click',()=>openPicker(edit.getAttribute('aria-expanded')!=='true'));
+  if(location.hash==='#author')studio.href='./avatar-studio.html#author';
+  studio.addEventListener('click',()=>{
+    rememberDraft();
+    try {store.setItem('ink-board-name',name.value);} catch {}
+  });
+  window.addEventListener('pageshow',syncPhoto);
+  window.addEventListener('storage',event=>{
+    if(event.key==='ink-board-avatar')setAvatar(event.newValue||'');
   });
   replyBar.querySelector('button').addEventListener('click',()=>selectTarget(null));
-  showTarget();setAvatar(avatar);
+  showTarget();syncPhoto();
   function stamp(ms) {
     const date=new Date(ms), age=Math.max(0,(Date.now()-ms)/60000);
     if(age<1)return '刚刚';if(age<60)return Math.floor(age)+' 分钟前';if(age<1440)return Math.floor(age/60)+' 小时前';
@@ -244,9 +247,9 @@ export function mountBoard(root, {api,avatarURL,paint,store,refresh=true}) {
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;
     const author=name.value.trim(), text=body.value.trim();
+    if(!avatar){openPicker(true);studio.focus({preventScroll:true});return;}
     if(!author){status.textContent='先写一个昵称。';name.focus();return;}
     if(!text){status.textContent='先写点内容。';body.focus();return;}
-    if(!avatar){status.textContent='先选一个留言头像。';openPicker(true);apply.focus();return;}
     const key=activeKey(),dest=target, draft=drafts[key]||{};
     const signature=JSON.stringify([author,text,photoFingerprint(avatar),dest?.id||null]);
     const ticket=signature===draft.signature?draft.ticket:random();

@@ -1,5 +1,4 @@
-import {mountBoard} from './ui.js?v=65b6ca6d061b';
-import {makeAvatarPainter} from './avatar.js';
+import {mountBoard} from './ui.js?v=portrait-studio-1';
 const base=new URL(document.querySelector('meta[name=guestbook-api]').content,document.baseURI);
 const memory=new Map();
 let store;
@@ -19,8 +18,7 @@ async function api(path,method='GET',data) {
   if(!res.ok)throw new Error(result?.error||'操作未完成，请重试。');
   return result;
 }
-const paint=makeAvatarPainter(new URL('./ink-white.webp',import.meta.url),new URL('./ink-black.webp',import.meta.url));
-mountBoard(document.getElementById('ink-guestbook'),{api,avatarURL:id=>new URL('avatars/'+id,base).href,paint,store});
+mountBoard(document.getElementById('ink-guestbook'),{api,avatarURL:id=>new URL('avatars/'+id,base).href,store});
 
 if(location.hash==='#author'){
   const display=document.createElement('p');
