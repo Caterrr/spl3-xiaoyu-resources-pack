@@ -328,7 +328,11 @@ async function init(){
     downloadVRM.addEventListener('click',()=>downloadModel('vrm'));
     downloadBlend.addEventListener('click',()=>downloadModel('blend'));
     await rebuild();
-    if(initialShot && !portraitButton.disabled)portraitButton.click();
+    if (initialShot) {
+      const notice = document.querySelector('#credit-dialog');
+      if (notice.open) await new Promise(resolve => notice.addEventListener('close', resolve, {once: true}));
+      if (!portraitButton.disabled) portraitButton.click();
+    }
   }catch(e){showStatus(e.message?.includes('WebGL')?'当前浏览器无法开启三维预览，请开启硬件加速后刷新。':e.message||'页面加载失败，请刷新重试',true);retry.onclick=()=>location.reload();download.disabled=true;}
 }
 init();

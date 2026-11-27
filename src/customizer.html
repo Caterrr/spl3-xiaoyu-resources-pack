@@ -10,6 +10,8 @@
 <script src="./page-motion.js?v=fade-420" defer></script>
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
 <link rel="stylesheet" href="./customizer-portrait.css?v=9749f1a9de81">
+<link rel="stylesheet" href="./customizer-credit.css?v=f85b9dc9498e">
+<script defer src="./customizer-credit.js?v=71946ff7e468"></script>
 </head><body class="customizer-page">
 <header class="site-header">
 <div class="container header-layout">
@@ -167,9 +169,18 @@
   <a class="portrait-save" download aria-disabled="true">保存 PNG</a>
   <button type="button" class="portrait-save" data-book-avatar disabled>用作留言头像</button>
 </dialog>
+<dialog id="credit-dialog" aria-labelledby="credit-title" aria-describedby="credit-author">
+  <h2 id="credit-title">使用请标明作者：</h2>
+  <p id="credit-author">小红书 @喝猫撸奶茶</p>
+  <div class="credit-actions">
+    <button type="button" data-copy aria-live="polite">复制作品链接</button>
+    <button type="button" data-accept autofocus>收到！</button>
+  </div>
+  <p id="credit-fallback" hidden><label for="credit-url">请手动复制作品链接</label><input id="credit-url" type="url" value="https://xhslink.cn/o/8qD1c3InVha" readonly></p>
+</dialog>
 <dialog id="social-dialog" aria-labelledby="social-title">
 <div class="social-dialog-heading"><h2 id="social-title"></h2><button id="social-close" type="button" aria-label="关闭二维码窗口" autofocus>×</button></div>
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="./model-menu.js?v=aa3c34cc0c26" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=53c3ee9d4536"></script></body></html>
+<script src="./model-menu.js?v=aa3c34cc0c26" defer></script><script src="./social.js" defer></script><script src="./site-analytics.js?v=19d2794a7ecf" defer></script><script type="module" src="./customizer.js?v=df7cded917be"></script></body></html>

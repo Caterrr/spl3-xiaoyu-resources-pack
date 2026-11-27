@@ -1,0 +1,49 @@
+#credit-dialog {
+  width: min(390px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: clamp(22px, 5vw, 30px);
+  color: #f7f7f7;
+  background: #191919;
+  border: 1px solid #484848;
+  border-radius: 8px;
+  font: inherit;
+}
+#credit-dialog[open] { animation: credit-in 280ms var(--ease) both }
+#credit-dialog::backdrop { background: rgb(0 0 0 / 68%); animation: credit-fade 240ms ease both }
+#credit-dialog[data-closing] { animation: credit-out 165ms ease-in both }
+#credit-dialog[data-closing]::backdrop { animation: credit-dim-out 165ms ease-in both }
+@keyframes credit-in { from { opacity: 0; transform: translateY(10px) scale(.985) } to { opacity: 1; transform: none } }
+@keyframes credit-out { to { opacity: 0; transform: translateY(5px) } }
+@keyframes credit-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes credit-dim-out { to { opacity: 0 } }
+#credit-title { margin: 0 0 10px; color: #c1c1c1; font: inherit; font-size: 15px }
+#credit-author { margin: 0; font-size: clamp(21px, 5vw, 26px); font-weight: 650; line-height: 1.4 }
+.credit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px }
+.credit-actions button {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #565656;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 180ms, border-color 180ms, transform 160ms var(--ease);
+}
+.credit-actions [data-accept] { color: #111; background: var(--accent); border-color: var(--accent); font-weight: 650 }
+.credit-actions button:active { transform: scale(.98) }
+.credit-actions button:focus-visible { outline: 2px solid white; outline-offset: 3px }
+@media (hover: hover) {
+  .credit-actions [data-copy]:hover { background: #282828; border-color: #999 }
+  .credit-actions [data-accept]:hover { background: #ff814d; border-color: #ff814d }
+}
+#credit-fallback { margin: 14px 0 0; font-size: 14px }
+#credit-url { display: block; width: 100%; margin-top: 5px; padding: 8px; font: inherit }
+@media (prefers-reduced-motion: reduce) {
+  #credit-dialog[open], #credit-dialog::backdrop { animation: none }
+  .credit-actions button { transition: none }
+  .credit-actions button:active { transform: none }
+}
