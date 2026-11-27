@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="./responsive.css?v=897b2c837167">
 <link rel="stylesheet" href="./page-motion.css?v=fade-420">
 <script src="./page-motion.js?v=fade-420" defer></script>
-<link rel="stylesheet" href="./weapon-ink/picker.css">
+<link rel="stylesheet" href="./weapon-ink/picker.css?v=ink-live-1">
 </head>
 <body class="library-page">
 <header class="site-header">
@@ -97,7 +97,14 @@
 </dialog>
 <dialog id="model-dialog" aria-labelledby="model-title" data-state="loading">
 <div id="model-stage" class="model-stage"></div>
-<div class="model-topbar"><div class="model-heading"><h2 id="model-title"></h2><label id="model-variant-control" hidden><span>版本</span><select id="model-variant" aria-label="模型版本"></select></label><div id="weapon-ink" hidden><label>墨水颜色 <select aria-label="墨水预设色"><option value="">原色</option><option value="#ff5d1c">橙</option><option value="#f5cc26">黄</option><option value="#a5d83d">黄绿</option><option value="#25b89a">青绿</option><option value="#3587ed">蓝</option><option value="#6147d4">靛紫</option><option value="#b546da">紫</option><option value="#ef68ae">粉</option><option value="#eeeeee">白</option><option value="#222222">黑</option><option value="custom" hidden disabled>自定义</option></select></label><input type="color" value="#ff5d1c" aria-label="自定义墨水颜色" title="自定义墨水颜色"><span role="status"></span></div><button id="model-background" type="button" aria-pressed="false" hidden>背景</button></div><button id="model-close" type="button" aria-label="关闭模型预览" autofocus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+<div class="model-topbar"><div class="model-heading"><h2 id="model-title"></h2><label id="model-variant-control" hidden><span>版本</span><select id="model-variant" aria-label="模型版本"></select></label><details id="weapon-ink" hidden>
+  <summary aria-label="墨水颜色"><span class="ink-chip" aria-hidden="true"></span>墨水颜色<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary>
+  <div class="ink-panel">
+    <div class="ink-swatches" role="group" aria-label="墨水预设色"></div>
+    <div class="ink-custom"><input type="color" value="#ff5d1c" aria-label="自定义墨水颜色"><input type="text" maxlength="7" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="墨水十六进制颜色值" placeholder="#RRGGBB"><button type="button" class="ink-reset">原色</button></div>
+    <span role="status"></span>
+  </div>
+</details><button id="model-background" type="button" aria-pressed="false" hidden>背景</button></div><button id="model-close" type="button" aria-label="关闭模型预览" autofocus><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
 <div id="model-progress" class="model-progress" role="progressbar" aria-label="加载模型" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
 <div class="model-loading"><p id="model-status" role="status"></p><button id="model-retry" type="button">重试</button></div>
 <div class="model-footer"><div class="model-help"><p class="desktop-help">拖动旋转 · 滚轮缩放</p><p class="touch-help">拖动旋转 · 双指缩放</p><p id="model-note" hidden></p></div>
@@ -108,7 +115,7 @@
 </dialog>
 <script src="./library-config.js?v=1efb8ad753c4" defer></script>
 <script src="./site-events.js?v=e9d7533d2f5a" defer></script>
-<script src="./app.js?v=303a42a04b08" defer></script>
+<script src="./app.js?v=ink-live-1" defer></script>
 <script src="./model-menu.js?v=5fd87dd8ce87" defer></script>
 <script src="./site-analytics.js?v=19d2794a7ecf" defer></script>
 </body>

@@ -123,17 +123,11 @@ async function loadModel(item){
    const section=item.section||new URL(location.href).searchParams.get('section')||game.defaultSection;
    if(!pickerStarted && ['old','new','sub-special','weapons'].includes(section)){
     pickerStarted=true;
-    import('./weapon-ink/picker.mjs?v=a06ec600bd52').then(({enableInk})=>enableInk({
+    import('./weapon-ink/picker.mjs?v=ink-live-1').then(({enableInk})=>enableInk({
      item,signal,original:blob,size,
      links:{blend:document.querySelector('#download-blend'),glb:document.querySelector('#download-glb')},
      loadBlend:()=>fileRuntime.then(({loadModelFile})=>loadModelFile(item,'blend',{signal})),
-     showGlb(url){
-      const src=url||modelObjectUrl;
-      if(viewer.src===src)return;
-      const orbit=viewer.getCameraOrbit(),target=viewer.getCameraTarget();
-      viewer.cameraOrbit=orbit.toString();viewer.cameraTarget=target.toString();
-      viewer.fieldOfView=viewer.getFieldOfView()+'deg';viewer.src=src;
-     },
+     viewer,
      ready(session){inkSession=session;}
     })).catch(()=>{});
    }
@@ -181,11 +175,13 @@ function selectModelVariant(){
   link.onclick=event=>{
    event.preventDefault();
    if(inkSession?.selected()){
-    const output=inkSession.download(format);
-    if(output){
-     const name=link.download,download=metric('downloadClick',item,format,analyticsPreview);
-     fileRuntime.then(({saveModelFile})=>{saveModelFile(output,name);download?.ready();}).catch(()=>download?.error('save'));
-    }
+    if(link.getAttribute('aria-busy')==='true')return;
+    const name=link.download,download=metric('downloadClick',item,format,analyticsPreview);
+    inkSession.download(format).then(async output=>{
+     if(!output){download?.cancel?.();return;}
+     const {saveModelFile}=await fileRuntime;
+     saveModelFile(output,name);download?.ready();
+    }).catch(()=>download?.error('save'));
     return;
    }
    if(format==='glb'&&activeItem?.id===item.id&&modelBlob){const blob=modelBlob;const download=metric('downloadClick',item,format,analyticsPreview);fileRuntime.then(({saveModelFile})=>{saveModelFile(blob,item.id+'.glb');download?.ready();}).catch(()=>download?.error('save'));}
