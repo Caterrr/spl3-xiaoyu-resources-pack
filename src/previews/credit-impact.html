@@ -65,10 +65,11 @@ label input:checked + span b {color:#68574b}
 </div></div>
 <button class="reopen" type="button" hidden>重新打开弹窗</button>
 </section>
-<div class="controls"><span role="status">点三下「不行！」试试</span><button class="replay" type="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 9a8 8 0 1 1 0 6M5 3v6h6"/></svg>重玩</button></div>
+<div class="controls"><span role="status">点四下「不行！」试试</span><button class="replay" type="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 9a8 8 0 1 1 0 6M5 3v6h6"/></svg>重玩</button></div>
 </main>
 <canvas class="particles" aria-hidden="true"></canvas>
-<script>
+<script type="module">
+import {impactScales, recoilFace, scatterSquares} from "../credit-scatter.js?v=f831e0529eac";
 const el = selector => document.querySelector(selector);
 const canvas = el('.particles');
 const ctx = canvas.getContext('2d');
@@ -80,7 +81,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 const tau = Math.PI * 2;
 const random = (lo, hi) => lo + Math.random() * (hi - lo);
 const pick = palette => palette[Math.floor(Math.random() * palette.length)];
-let mode, hits, generation = 0, recoil;
+let mode, hits, generation = 0, recoil, clearScatter;
 let frame = 0;
 const particles = [];
 
@@ -164,9 +165,7 @@ function explode(x,y) {
         Math.max(-lift,Math.sin(angle)*v*.77-upward),g*random(1,1.13),start+random(0,18));
     }
   }
-  if(mode==='scatter') {
-    scatter(x,y,88,490,36,now);
-  } else if(mode==='loft') {
+  if(mode==='loft') {
     for(let i=0;i<84;i++) {
       const s=random(.49,1);
       square(x+random(-5,5),y,random(-365,365),-lift*s,g*random(1,1.12),now+random(0,68));
@@ -184,23 +183,32 @@ function explode(x,y) {
 }
 
 function reset() {
-  generation++; recoil?.cancel(); clearParticles();
+  generation++; recoil?.cancel(); clearScatter?.(); clearParticles();
   hits=0;refusal.disabled=false;face.style.transform='none';face.style.opacity='1';
-  notice.hidden=false;reopen.hidden=true;statusLine.textContent='点三下「不行！」试试';
+  notice.hidden=false;reopen.hidden=true;statusLine.textContent=mode==='scatter'?'点四下「不行！」试试':'点三下「不行！」试试';
 }
 async function hit() {
-  if (hits>=3 || notice.hidden) return;
-  const n=++hits, final=n===3, token=generation;
+  const limit=mode==='scatter'?impactScales.length:3;
+  if (hits>=limit || notice.hidden) return;
+  const n=++hits, final=n===limit, token=generation;
   const box=refusal.getBoundingClientRect();
   const base=1-.2*(n-1);
   const x=box.left+box.width/2, y=box.top+box.height/2;
-  const current=getComputedStyle(face).transform;
-  recoil?.cancel();
   if(final) {
     if(document.activeElement===refusal) accept.focus({preventScroll:true});
     refusal.disabled=true;
   }
-  statusLine.textContent=n+' / 3'+(final?' · 可点「重玩」':'');
+  statusLine.textContent=n+' / '+limit+(final?' · 可点「重玩」':'');
+  if(mode==='scatter') {
+    recoil=recoilFace(face,n-1,recoil);
+    if(final) {
+      try {await recoil?.finished;} catch {return;}
+      if(token===generation && !notice.hidden) clearScatter=scatterSquares(refusal);
+    }
+    return;
+  }
+  const current=getComputedStyle(face).transform;
+  recoil?.cancel();
   const target=final?0:base-.2;
   const resting='scale('+target+')';
   face.style.transform=resting;

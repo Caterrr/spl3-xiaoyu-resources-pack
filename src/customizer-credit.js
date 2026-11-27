@@ -1,49 +1,34 @@
-(() => {
-  const dialog = document.querySelector('#credit-dialog');
-  const refusal = dialog.querySelector('.credit-secondary');
-  const face = refusal.querySelector('.credit-button-face');
-  const accept = dialog.querySelector('.credit-primary');
-  const steps = 5;
-  let remaining = steps;
+import {impactScales, recoilFace, scatterSquares} from './credit-scatter.js?v=f831e0529eac';
 
-  dialog.addEventListener('keydown', event => {
-    if (event.key === 'Tab') dialog.setAttribute('data-keyboard-nav', '');
-  });
+const dialog = document.querySelector('#credit-dialog');
+const refusal = dialog.querySelector('.credit-secondary');
+const face = refusal.querySelector('.credit-button-face');
+const accept = dialog.querySelector('.credit-primary');
+let hits = 0, recoil, clearBurst;
 
-  async function dismiss() {
-    if (dialog.hasAttribute('data-closing')) return;
-    dialog.setAttribute('data-closing', '');
-    await Promise.allSettled(dialog.getAnimations().map(animation => animation.finished));
-    dialog.close();
-    dialog.removeAttribute('data-closing');
-  }
+dialog.addEventListener('keydown', event => {
+  if (event.key === 'Tab') dialog.setAttribute('data-keyboard-nav', '');
+});
 
-  function burst() {
-    const count = 16;
-    for (let i = 0; i < count; i++) {
-      const particle = document.createElement('i');
-      particle.className = 'credit-particle';
-      particle.setAttribute('aria-hidden', 'true');
-      particle.style.setProperty('--angle', ((i + Math.random() * .5) * 360 / count) + 'deg');
-      particle.style.setProperty('--distance', (22 + Math.random() * 22) + 'px');
-      particle.style.setProperty('--size', (3 + Math.random() * 4) + 'px');
-      refusal.append(particle);
-      particle.addEventListener('animationend', () => particle.remove(), {once: true});
-    }
-  }
+async function dismiss() {
+  if (dialog.hasAttribute('data-closing')) return;
+  dialog.setAttribute('data-closing', '');
+  recoil?.cancel();
+  clearBurst?.();
+  await Promise.allSettled(dialog.getAnimations().map(animation => animation.finished));
+  dialog.close();
+  dialog.removeAttribute('data-closing');
+}
 
-  refusal.addEventListener('click', async () => {
-    if (remaining === 0 || dialog.hasAttribute('data-closing')) return;
-    remaining--;
-    face.style.setProperty('--size-factor', remaining / steps);
-    if (remaining > 0) return;
-
-    if (document.activeElement === refusal) accept.focus({preventScroll: true});
-    refusal.disabled = true;
-    await Promise.allSettled(face.getAnimations().map(animation => animation.finished));
-    if (dialog.open && !dialog.hasAttribute('data-closing')) burst();
-  });
-  accept.addEventListener('click', dismiss);
-  dialog.addEventListener('cancel', event => event.preventDefault());
-  dialog.showModal();
-})();
+refusal.addEventListener('click', async () => {
+  if (hits >= impactScales.length || dialog.hasAttribute('data-closing')) return;
+  recoil = recoilFace(face, hits++, recoil);
+  if (hits < impactScales.length) return;
+  if (document.activeElement === refusal) accept.focus({preventScroll: true});
+  refusal.disabled = true;
+  try { await recoil?.finished; } catch { return; }
+  if (dialog.open && !dialog.hasAttribute('data-closing')) clearBurst = scatterSquares(refusal);
+});
+accept.addEventListener('click', dismiss);
+dialog.addEventListener('cancel', event => event.preventDefault());
+dialog.showModal();

@@ -9,7 +9,7 @@
   border-radius: 16px;
   font: inherit;
 }
-#credit-dialog[open] { animation: credit-in 280ms var(--ease) both }
+#credit-dialog[open] { animation: credit-in 280ms var(--ease) backwards }
 #credit-dialog::backdrop { background: rgb(0 0 0 / 68%); animation: credit-fade 240ms ease both }
 #credit-dialog[data-closing] { animation: credit-out 165ms ease-in both }
 #credit-dialog[data-closing]::backdrop { animation: credit-dim-out 165ms ease-in both }
@@ -59,28 +59,9 @@
   border-radius: inherit;
   background: #363636;
   color: #fafafa;
-  transform: scale(var(--size-factor, 1));
-  transition: transform 350ms cubic-bezier(.22, 1.65, .45, 1), background-color 180ms;
+  transition: background-color 180ms;
 }
-.credit-secondary:disabled .credit-button-face { transition: transform 160ms ease-in }
-.credit-particle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: var(--size);
-  height: var(--size);
-  border-radius: 50%;
-  background: var(--accent);
-  pointer-events: none;
-  animation: credit-burst 420ms cubic-bezier(.16, .8, .36, 1) both;
-}
-.credit-particle:nth-of-type(3n) { background: #fafafa }
-.credit-particle:nth-of-type(3n + 1) { background: #ffae72 }
-@keyframes credit-burst {
-  from { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(.7) }
-  45% { opacity: 1 }
-  to { opacity: 0; transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--distance)) scale(.3) }
-}
+.credit-scatter-layer::backdrop { background: transparent; pointer-events: none }
 .credit-actions .credit-primary { color: #111; background: var(--accent); font-weight: 650 }
 .credit-actions .credit-primary:active { transform: scale(.98) }
 .credit-actions button:focus-visible { outline: none }
@@ -98,10 +79,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   #credit-dialog[open], #credit-dialog::backdrop { animation: none }
-  .credit-actions button, .credit-button-face, .credit-secondary:disabled .credit-button-face { transition: none }
+  .credit-actions button, .credit-button-face { transition: none }
   .credit-actions .credit-primary:active { transform: none }
-  .credit-particle {
-    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(calc(var(--distance) / 2));
-    animation: credit-dim-out 180ms linear both;
-  }
 }

@@ -8,7 +8,7 @@
 <link rel="icon" href="./assets/site-icon.ico">
 <link rel="stylesheet" href="./typography.css?v=a554d1e98007">
 <link rel="stylesheet" href="./avatar-studio.css?v=04c6ce4d7e6d">
-<link rel="stylesheet" href="./customizer-credit.css?v=96e4f8cdaca7">
+<link rel="stylesheet" href="./customizer-credit.css?v=3aa8bdca283d">
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
 </head>
 <body>
@@ -88,7 +88,8 @@
     try {sessionStorage.setItem('ink-studio-credit-seen','1');} catch {}
   }, {once:true});
   const credit=document.createElement('script');
-  credit.src='./customizer-credit.js?v=07314d3476f1';
+  credit.type='module';
+  credit.src='./customizer-credit.js?v=30197c8aa122';
   document.body.append(credit);
 })();
 </script>
