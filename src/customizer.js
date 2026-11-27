@@ -4,7 +4,7 @@ import {OrbitControls} from './vendor/three/examples/jsm/controls/OrbitControls.
 import {setupPosePanel} from './customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=29bd5c9b69f2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=34174bde4d5b'}};
+const profiles={raiders:{catalog:'./catalog/raiders/customizer.json?v=afa33936a92f',core:'./customizer-core.js?v=29bd5c9b69f2'},spl3:{catalog:'./catalog/spl3/customizer.json?v=c662621acc70',core:'./customizer-spl3-core.js?v=ce6141d0a461'}};
 let DEFAULTS,setSkinColor,restoreSkinSave,normalize,assemble,dispose,tint,setEye,exportCharacter,supports,headgearAvailable,wearFlags;
 
 const $=s=>document.querySelector(s),stage=$('#character-stage'),status=$('#stage-message'),overlay=$('#stage-status'),retry=$('#retry-character'),download=$('#download-character'),downloadStatus=$('#download-status');
@@ -209,6 +209,7 @@ async function init(){
     }
     const response=await fetch(profiles[gameKey].catalog);if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
     if(gameKey==='spl3'&&catalog.game!=='spl3'||catalog.game&&catalog.game!==gameKey)throw Error('搭配目录不匹配，请刷新重试');
+    if(core.expandCatalog)catalog=core.expandCatalog(catalog);
     $('#wear-categories').hidden=gameKey!=='spl3';
     const wearTabs = document.querySelectorAll('#wear-categories button');
     for (const button of wearTabs) button.addEventListener('click', () => {

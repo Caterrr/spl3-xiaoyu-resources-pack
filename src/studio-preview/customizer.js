@@ -4,7 +4,7 @@ import {OrbitControls} from '../vendor/three/examples/jsm/controls/OrbitControls
 import {setupPosePanel} from '../customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-import {profiles} from './customizer-profiles.js?v=d7f2e5103c2a';
+import {profiles} from './customizer-profiles.js?v=1b6443d0af4d';
 import {handoff,handoffURL} from './studio-store.js';
 const transfer=handoff();
 const studioEdit=typeof transfer?.edit==='string' && typeof transfer.project==='string' ? transfer : null;
@@ -219,6 +219,7 @@ async function init(){
     }
     const response=await fetch(profiles[gameKey].catalog);if(!response.ok)throw Error('搭配目录加载失败');catalog=await response.json();
     if(gameKey==='spl3'&&catalog.game!=='spl3'||catalog.game&&catalog.game!==gameKey)throw Error('搭配目录不匹配，请刷新重试');
+    if(core.expandCatalog)catalog=core.expandCatalog(catalog);
     $('#wear-categories').hidden=gameKey!=='spl3';
     const wearTabs = document.querySelectorAll('#wear-categories button');
     for (const button of wearTabs) button.addEventListener('click', () => {

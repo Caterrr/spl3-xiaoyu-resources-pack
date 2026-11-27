@@ -2,9 +2,10 @@ import * as THREE from './vendor/three/build/three.module.min.js';
 import {GLTFExporter} from './vendor/three/examples/jsm/exporters/GLTFExporter.js';
 import {clone} from './vendor/three/examples/jsm/utils/SkeletonUtils.js';
 import {loadAsset,joinAsset,prepareTints,dispose,tint,setEye,SKIN_PRESETS,BASE_SKIN,normalizeSkinSelection,restoreSkinSave,prepareSkin,setSkinColor} from './customizer-core.js?v=29bd5c9b69f2';
-import {loadHeadgearFit,applyHeadgearFit} from './customizer-spl3-headgear.js?v=6c9cbd7b61c5';
+import {loadHeadgearFit,applyHeadgearFit,mountLibraryHeadgear} from './customizer-spl3-headgear.js?v=d34086902aff';
 import {restoreExportPose} from './customizer-spl3-poses.js?v=7800c405309e';
 export {previewPoses,loadPreviewPose,setPreviewPose} from './customizer-spl3-poses.js?v=7800c405309e';
+import libraryHeadgear from './customizer-spl3-extra-headgear.js?v=a9d96ac0ecfe';
 export {dispose,tint,setEye,SKIN_PRESETS,setSkinColor,restoreSkinSave};
 
 export const DEFAULTS=Object.freeze({species:'squid',gender:'female',hair:'spl3:Har_SQD001',brow:1,outfit:'spl3:Clt_TES000',bottom:'spl3:Btm_000',headgear:'spl3:none:headgear',shoes:'spl3:Shs_SDL000',eye:0,color:'#ff5d1c',skinColor:BASE_SKIN,skinPreset:null});
@@ -12,8 +13,9 @@ export function avatarId(s){return 'spl3:Player0'+(Number(s.species==='octopus')
 export function browId(s){return `spl3:Eyb_${s.species==='octopus'?'OCT':'SQD'}00${s.brow}_${s.gender==='male'?'M':'F'}`;}
 export function supports(entry,gender){return !!entry&&(entry.empty||!!entry.variants?.[gender]);}
 export function headgearRule(entry,s){return entry?.fitByAvatar?.[avatarId(s)]||{};}
-export function headgearAvailable(entry,state){
-  return !!(entry?.empty||(supports(entry,state.gender)&&entry.fitByAvatar?.[avatarId(state)]));
+export function headgearAvailable(entry,state){return supports(entry,state.gender);}
+export function expandCatalog(catalog) {
+  return {...catalog, headgear:[...catalog.headgear, ...libraryHeadgear]};
 }
 export function normalize(input,catalog){
   if(catalog.game!=='spl3')throw Error('喷3搭配目录不匹配');
@@ -28,7 +30,6 @@ export function normalize(input,catalog){
     if(!valid.length)throw Error('服装资源不完整');
     if(!valid.some(e=>e.id===s[key]))s[key]=(valid.find(e=>e.id===DEFAULTS[key])||valid[0]).id;
   }
-  if(!headgearAvailable(catalog.headgear.find(e=>e.id===s.headgear),s))s.headgear=DEFAULTS.headgear;
   s.eye=Number.isInteger(Number(s.eye))?Math.max(0,Math.min(catalog.eyes.length-1,Number(s.eye))):0;
   s.brow=Number.isInteger(Number(s.brow))&&Number(s.brow)>=0&&Number(s.brow)<=3?Number(s.brow):DEFAULTS.brow;
   if(!/^#[\da-f]{6}$/i.test(s.color))s.color=DEFAULTS.color;
@@ -39,7 +40,7 @@ function rigOf(scene){let found;scene.traverse(o=>{if(o.userData.canonicalRig)fo
 async function load(entry){
   if(!entry||entry.game!=='spl3'||!entry.id.startsWith('spl3:'))throw Error('服装与角色必须来自喷3');
   const asset=await loadAsset(entry);
-  if(asset.scene.userData.game!=='spl3'){dispose(asset.scene);throw Error('模型游戏版本不匹配');}
+  if(!entry.headMount&&asset.scene.userData.game!=='spl3'){dispose(asset.scene);throw Error('模型游戏版本不匹配');}
   return asset;
 }
 function variant(entry,s){if(!entry||entry.empty)return null;const asset=entry.variants?.[s.gender];if(!asset)throw Error('缺少对应性别的模型');return asset;}
@@ -74,8 +75,17 @@ export async function assemble(catalog,input){
     const rig=rigOf(assets.body.scene),roles={};assets.body.scene.traverse(o=>{if(o.userData.role)roles[o.userData.role]=o;});
     if(!roles.body||!roles.eye||!roles.face||!roles.faceNoEars)throw Error('角色部件不完整');
     roles.face.visible=!headRule.hideEars;roles.faceNoEars.visible=!!headRule.hideEars;
-    applyHeadgearFit(fit.value,assets.headgear,assets.hair);
-    for(const [key,asset] of Object.entries(assets))if(key!=='body')joinAsset(character,asset.scene,rig);
+    for(const [key,asset] of Object.entries(assets)){
+      if(key==='body')continue;
+      if(key==='headgear'){
+        if(entries.headgear.headMount){
+          mountLibraryHeadgear(character,rig,asset.scene,entries.headgear,fit.value);
+          continue;
+        }
+        applyHeadgearFit(fit.value,asset);
+      }
+      joinAsset(character,asset.scene,rig);
+    }
     const maskFor=entry=>{const key=entry?.maskTexture;if(!key)return null;if(!catalog.masks[key])throw Error('服装遮罩缺失');return catalog.masks[key];};
     const masks=[maskFor(entries.wear)];
     if(entries.bottom)masks.push(maskFor(entries.bottom));

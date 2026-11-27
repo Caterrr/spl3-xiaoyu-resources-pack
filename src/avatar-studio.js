@@ -3,7 +3,7 @@ import {facialControls, portraitCameras, actionCamera, squarePng} from './custom
 
 const $ = id => document.getElementById(id);
 const profiles = {
-  spl3:{core:'./customizer-spl3-core.js?v=34174bde4d5b',catalog:'./catalog/spl3/customizer.json?v=c662621acc70'},
+  spl3:{core:'./customizer-spl3-core.js?v=ce6141d0a461',catalog:'./catalog/spl3/customizer.json?v=c662621acc70'},
   raiders:{core:'./customizer-core.js?v=29bd5c9b69f2',catalog:'./catalog/raiders/customizer.json?v=afa33936a92f'}
 };
 const modeNames={head:'正脸',bust:'半身',free:'自由'};
@@ -226,7 +226,7 @@ async function loadGame(nextGame){
     const profile=profiles[game];
     const [engine,data]=await Promise.all([import(profile.core),fetch(profile.catalog).then(r=>{if(!r.ok)throw Error();return r.json();})]);
     if(ticket!==modelTicket)return;
-    core=engine;catalog=data;
+    core=engine;catalog=engine.expandCatalog ? engine.expandCatalog(data) : data;
     let initial=core.restoreSkinSave(states[game]||read(game+'-character-v1'))||core.DEFAULTS;
     if(!fromCustomizer&&!saved.state&&Number.isInteger(recipe.actor)&&!states[game]&&((recipe.actor>=4)===(game==='raiders'))){
       initial={...initial,species:recipe.actor%4<2?'squid':'octopus',gender:recipe.actor%2?'male':'female',color:hex(recipe.ink)?recipe.ink:initial.color};
