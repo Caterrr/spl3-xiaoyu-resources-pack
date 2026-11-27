@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="./responsive.css?v=73272f6e6e4f">
 <link rel="stylesheet" href="./page-motion.css?v=fade-420">
 <script src="./page-motion.js?v=fade-420" defer></script>
-<link rel="stylesheet" href="./guestbook/board.css?v=4bfc8c645bfd">
+<link rel="stylesheet" href="./guestbook/board.css?v=9922804e1168">
 </head>
 <body>
 <header class="site-header">
@@ -91,11 +91,17 @@
   <h1 id="gb-title">留言板</h1>
   <form class="gb-compose" novalidate>
     <div class="gb-identity">
-      <button class="gb-avatar-edit" type="button" aria-label="捏头像" aria-controls="gb-picker" aria-expanded="false"><span class="gb-avatar-empty" aria-hidden="true">捏头像</span><img alt="" hidden></button>
-      <input name="nickname" maxlength="24" autocomplete="nickname" placeholder="你的昵称" aria-label="你的昵称" required>
+      <a class="gb-avatar-edit" href="./avatar-studio.html"><span class="gb-avatar-empty" aria-hidden="true">+</span><img alt="" hidden><span class="gb-avatar-label">捏头像</span></a>
+      <div class="gb-field">
+        <div class="gb-field-head"><label for="gb-name">昵称</label><span class="gb-field-error" id="gb-name-error" hidden>请填写昵称</span></div>
+        <input id="gb-name" name="nickname" maxlength="24" autocomplete="nickname" placeholder="怎么称呼你？" required>
+      </div>
     </div>
     <div class="gb-replying" hidden><span></span><button type="button" aria-label="取消回复">取消</button></div>
-    <textarea name="message" aria-label="留言内容" placeholder="想说点什么？" maxlength="500" rows="2" required></textarea>
+    <div class="gb-field gb-message-field">
+      <div class="gb-field-head"><label for="gb-message">留言内容</label><span class="gb-field-error" id="gb-message-error" hidden>请填写内容</span></div>
+      <textarea id="gb-message" name="message" placeholder="想说点什么？" maxlength="500" rows="3" required></textarea>
+    </div>
     <section class="gb-invite" id="gb-picker" aria-label="捏头像" inert>
       <div class="gb-slide"><div class="gb-invite-line">
         <span>从奇迹鱿鱿捏一个自己的头像</span>
@@ -113,5 +119,5 @@
 <a id="social-qr-frame" class="social-qr-frame" target="_blank" rel="noopener noreferrer" hidden><img id="social-qr-image" class="social-qr-image" alt=""></a>
 <p id="social-pending" class="social-pending" role="status">加载中</p>
 </dialog>
-<script src="./model-menu.js?v=aa3c34cc0c26" defer></script><script src="./social.js" defer></script><script type="module" src="./guestbook/board.js?v=ef5730a743ce"></script>
+<script src="./model-menu.js?v=aa3c34cc0c26" defer></script><script src="./social.js" defer></script><script type="module" src="./guestbook/board.js?v=246082194536"></script>
 </body></html>

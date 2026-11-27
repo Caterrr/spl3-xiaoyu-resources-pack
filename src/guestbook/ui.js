@@ -21,9 +21,10 @@ export function mountBoard(root, {api,avatarURL,store,refresh=true}) {
     svg.append(path);return svg;
   }
   function setAvatar(photo) {
-    avatar=photo;avatarImg.hidden=!photo;edit.querySelector('span').hidden=!!photo;
+    avatar=photo;avatarImg.hidden=!photo;edit.querySelector('.gb-avatar-empty').hidden=!!photo;
     if(photo) avatarImg.src=photo;
-    edit.setAttribute('aria-label',photo ? '更换头像':'捏头像');
+    edit.querySelector('.gb-avatar-label').textContent=photo ? '更换头像':'捏头像';
+    if(photo)openPicker(false);
   }
   function photoFingerprint(photo) {
     let hash=2166136261;
@@ -43,13 +44,25 @@ export function mountBoard(root, {api,avatarURL,store,refresh=true}) {
   }
   function showTarget() {
     replyBar.hidden=!target;replyBar.querySelector('span').textContent=target ? '回复 '+target.author:'';
+    $('label[for="gb-message"]').textContent=target ? '回复内容':'留言内容';
+    setFieldError(body,false);
     send.textContent=target ? '发送回复':'发送留言';body.placeholder=target ? '写下你的回复…':'想说点什么？';
     body.value=drafts[activeKey()]?.body || '';
+  }
+  function setFieldError(field,invalid) {
+    const hint=$('#'+field.id+'-error');
+    hint.hidden=!invalid;
+    if(invalid){
+      field.setAttribute('aria-invalid','true');
+      field.setAttribute('aria-describedby',hint.id);
+    }else{
+      field.removeAttribute('aria-invalid');
+      field.removeAttribute('aria-describedby');
+    }
   }
   function openPicker(open) {
     picker.inert=!open;
     picker.dataset.open=String(open);
-    edit.setAttribute('aria-expanded',String(open));
   }
   function syncPhoto() {
     setAvatar(store.getItem('ink-board-avatar') || '');
@@ -58,7 +71,8 @@ export function mountBoard(root, {api,avatarURL,store,refresh=true}) {
     if(result==='avatar')status.textContent='头像已更新。';
     openPicker(false);
     form.scrollIntoView({block:'center'});
-    body.focus({preventScroll:true});
+    const nextField=name.value.trim()?body:name;
+    nextField.focus({preventScroll:true});
     const clean=new URL(location.href);
     clean.searchParams.delete('compose');
     history.replaceState(history.state,'',clean);
@@ -72,12 +86,18 @@ export function mountBoard(root, {api,avatarURL,store,refresh=true}) {
   }
   name.addEventListener('focus',offerAvatar);
   body.addEventListener('focus',offerAvatar);
-  edit.addEventListener('click',()=>openPicker(edit.getAttribute('aria-expanded')!=='true'));
-  if(location.hash==='#author')studio.href='./avatar-studio.html#author';
-  studio.addEventListener('click',()=>{
-    rememberDraft();
-    try {store.setItem('ink-board-name',name.value);} catch {}
-  });
+  for(const field of [name,body]){
+    field.addEventListener('input',()=>{
+      if(field.value.trim() && field.hasAttribute('aria-invalid'))setFieldError(field,false);
+    });
+  }
+  for(const link of [edit,studio]){
+    if(location.hash==='#author')link.href='./avatar-studio.html#author';
+    link.addEventListener('click',()=>{
+      rememberDraft();
+      try {store.setItem('ink-board-name',name.value);} catch {}
+    });
+  }
   window.addEventListener('pageshow',syncPhoto);
   window.addEventListener('storage',event=>{
     if(event.key==='ink-board-avatar')setAvatar(event.newValue||'');
@@ -247,9 +267,14 @@ export function mountBoard(root, {api,avatarURL,store,refresh=true}) {
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(busy)return;
     const author=name.value.trim(), text=body.value.trim();
-    if(!avatar){openPicker(true);studio.focus({preventScroll:true});return;}
-    if(!author){status.textContent='先写一个昵称。';name.focus();return;}
-    if(!text){status.textContent='先写点内容。';body.focus();return;}
+    setFieldError(name,!author);
+    setFieldError(body,!text);
+    if(!avatar || !author || !text){
+      status.textContent='';
+      if(!avatar){openPicker(true);studio.focus();}
+      else (!author?name:body).focus();
+      return;
+    }
     const key=activeKey(),dest=target, draft=drafts[key]||{};
     const signature=JSON.stringify([author,text,photoFingerprint(avatar),dest?.id||null]);
     const ticket=signature===draft.signature?draft.ticket:random();
