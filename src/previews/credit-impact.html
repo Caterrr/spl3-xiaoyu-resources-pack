@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#101010">
-<title>按钮动效试玩 · 奇迹鱿鱿</title>
+<title>粒子动效试玩 · 奇迹鱿鱿</title>
 <link rel="icon" href="../assets/site-icon.ico">
 <style>
 :root {color-scheme:dark;--orange:#ff6122;--paper:#f1efec;font:16px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
@@ -24,7 +24,7 @@ label span {display:flex;align-items:baseline;justify-content:center;gap:8px;bor
 label b {font-size:.78em;font-family:ui-monospace,monospace;font-weight:650;color:#a5a09b}
 label input:checked + span {background:var(--paper);color:#161616}
 label input:checked + span b {color:#68574b}
-.stage {display:grid;place-items:center;position:relative;isolation:isolate;overflow:hidden;border-radius:16px;min-height:clamp(310px,48vh,420px);padding:40px clamp(12px,3vw,24px);background-color:#151515;background-image:radial-gradient(#303030 1px,transparent 1px);background-size:13px 13px}
+.stage {display:grid;place-items:center;position:relative;isolation:isolate;overflow:hidden;border-radius:16px;min-height:clamp(310px,48vh,420px);padding:40px clamp(12px,3vw,24px);background:#151515}
 .notice {width:min(390px,100%);padding:clamp(18px,4vw,30px);background:#202020;border-radius:16px;box-shadow:0 12px 36px #0005}
 .notice h2 {font-size:15px;font-weight:500;color:#c1c1c1;margin:0 0 12px}
 .author {display:flex;align-items:center;gap:12px}
@@ -35,21 +35,11 @@ label input:checked + span b {color:#68574b}
 .refusal-slot {position:relative}
 .actions button,.face,.reopen {min-height:44px;border-radius:8px;font-size:14px}
 .refuse {width:100%;position:relative;display:block;padding:0;background:transparent;touch-action:manipulation}
-.face,.shard {display:grid;place-items:center;color:#fafafa;background:#363636;border:1px solid #f2f2f2;font-weight:500}
+.face {display:grid;place-items:center;color:#fafafa;background:#363636;border:1px solid #f2f2f2;font-weight:500}
 .face {width:100%;pointer-events:none}
 .accept,.reopen {background:var(--orange);color:#111;font-weight:700;padding:9px 14px}
 .accept:hover,.reopen:hover {background:#ff8047}
-.origin {position:absolute;z-index:2;top:50%;left:50%;width:0;height:0;pointer-events:none}
-.piece,.shard {position:absolute;display:block;pointer-events:none;will-change:transform,opacity}
-.shard {display:grid;border-radius:8px;line-height:1;font-size:14px}
-.ring {border:2px solid currentColor;border-radius:50%}
-.ink {background:currentColor;border-radius:56% 44% 64% 36% / 45% 58% 42% 55%}
-.drop {background:currentColor;border-radius:85% 35% 40% 65% / 55% 50% 50% 45%}
-.streak {background:currentColor;clip-path:polygon(0 45%,100% 0,81% 62%,5% 100%)}
-.spark {background:currentColor;clip-path:polygon(50% 0,61% 36%,100% 49%,62% 60%,49% 100%,39% 64%,0 51%,37% 39%)}
-.flare {background:currentColor;clip-path:polygon(50% 0,56% 33%,76% 6%,69% 37%,100% 20%,76% 46%,99% 53%,72% 59%,93% 92%,61% 71%,53% 100%,47% 72%,26% 96%,35% 67%,0 81%,27% 55%,2% 44%,32% 42%,13% 9%,41% 33%)}
-.halftone {border-radius:50%;background-image:radial-gradient(currentColor 1.3px,transparent 1.6px);background-size:5px 5px}
-.crack {background:#fff2d8;clip-path:polygon(42% 0,53% 0,39% 35%,60% 47%,46% 100%,48% 53%,30% 42%)}
+.particles {position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
 .controls {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 1px;color:#c4c0bd;font-size:14px}
 .replay {display:inline-flex;align-items:center;gap:6px;background:transparent;padding:10px 6px;min-height:44px}
 .replay svg {width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
@@ -59,192 +49,212 @@ label input:checked + span b {color:#68574b}
 </head>
 <body>
 <main>
-<h1>按钮动效试玩</h1>
+<h1>粒子动效试玩</h1>
 <fieldset><legend class="sr">选择动效</legend>
-<label><input type="radio" name="effect" value="ink" checked><span><b>A</b>墨汁爆裂</span></label>
-<label><input type="radio" name="effect" value="shards"><span><b>B</b>边框击碎</span></label>
-<label><input type="radio" name="effect" value="comic"><span><b>C</b>漫画重击</span></label>
+<label><input type="radio" name="effect" value="dust" checked><span><b>A</b>微尘解体</span></label>
+<label><input type="radio" name="effect" value="orbit"><span><b>B</b>向心坍缩</span></label>
+<label><input type="radio" name="effect" value="chain"><span><b>C</b>连锁点爆</span></label>
 </fieldset>
 <section class="stage" aria-label="动效预览">
 <div class="notice">
 <h2>使用请标明作者：</h2>
 <div class="author"><img src="../assets/credit-avatar.jpg" alt=""><div><small>小红书</small><strong>@喝猫撸奶茶</strong></div></div>
 <div class="actions">
-<div class="refusal-slot"><button class="refuse" type="button"><span class="face">不行！</span></button><div class="origin" aria-hidden="true"></div></div>
+<div class="refusal-slot"><button class="refuse" type="button"><span class="face">不行！</span></button></div>
 <button class="accept" type="button">收到！</button>
 </div></div>
 <button class="reopen" type="button" hidden>重新打开弹窗</button>
+<canvas class="particles" aria-hidden="true"></canvas>
 </section>
 <div class="controls"><span role="status">点三下「不行！」试试</span><button class="replay" type="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 9a8 8 0 1 1 0 6M5 3v6h6"/></svg>重玩</button></div>
 </main>
 <script>
-const q = selector => document.querySelector(selector);
-const radios = [...document.querySelectorAll('input[name="effect"]')];
-const notice = q('.notice'), origin = q('.origin'), face = q('.face');
-const refuse = q('.refuse'), accept = q('.accept'), reopen = q('.reopen'), status = q('[role="status"]');
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-const orange = '#ff6122', cream = '#fff3d5', amber = '#ffac37';
-const TAU = Math.PI * 2;
-const random = (min,max) => min + Math.random() * (max-min);
-let mode = 'ink', hits = 0, run = 0, recoil;
+const el = selector => document.querySelector(selector);
+const canvas = el('.particles');
+const ctx = canvas.getContext('2d');
+const stage = el('.stage'), face = el('.face'), refusal = el('.refuse');
+const notice = el('.notice'), accept = el('.accept'), reopen = el('.reopen');
+const statusLine = el('[role="status"]');
+const radios = [...document.querySelectorAll('[name="effect"]')];
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+const tau = Math.PI * 2;
+const random = (lo, hi) => lo + Math.random() * (hi - lo);
+const pick = palette => palette[Math.floor(Math.random() * palette.length)];
+const frost = ['#faf6ed','#dedbd4','#b3b1ad','#ffa676'];
+const heat = ['#ff6528','#ffa84d','#ffdda4','#fff6e7'];
+let mode, hits, generation = 0, recoil;
+let frame = 0;
+const particles = [];
 
-function animatePiece(node, frames, duration, delay = 0) {
-  origin.append(node);
-  const animation = node.animate(frames, {duration,delay,fill:'both'});
-  animation.onfinish = () => node.remove();
+function clearParticles() {
+  cancelAnimationFrame(frame);
+  frame = 0;
+  particles.length = 0;
+  ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 }
-function piece(shape,x,y,w,h,color) {
-  const el = document.createElement('i');
-  el.className = 'piece ' + shape;
-  Object.assign(el.style,{left:x-w/2+'px',top:y-h/2+'px',width:w+'px',height:h+'px',color});
-  return el;
+function sizeCanvas() {
+  const ratio = Math.min(devicePixelRatio || 1, 2);
+  const width = Math.round(canvas.clientWidth * ratio);
+  const height = Math.round(canvas.clientHeight * ratio);
+  if (canvas.width === width && canvas.height === height) return;
+  clearParticles();
+  canvas.width = width;
+  canvas.height = height;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 }
-function pulse(shape,x,y,w,h,color,duration,angle=0,delay=0) {
-  const el = piece(shape,x,y,w,h,color);
-  const turn = 'rotate('+angle+'deg) ';
-  animatePiece(el, [
-    {transform:turn+'scale(.15)',opacity:1,easing:'cubic-bezier(.15,.75,.25,1)'},
-    {transform:turn+'scale(.88)',opacity:1,offset:.38},
-    {transform:turn+'scale(1.14)',opacity:0}
-  ],duration,delay);
+new ResizeObserver(sizeCanvas).observe(stage);
+sizeCanvas();
+
+// Every mark is a filled circle. Its path determines the effect.
+function addDot(start, life, radius, color, position) {
+  particles.push({start, life, radius, color, position});
+  if (!frame) frame = requestAnimationFrame(draw);
 }
-function spray(shape,count,distance,color,options={}) {
-  const {x=0,y=0,size=5,stretch=1,gravity=0,start=0,life=420,delay=0} = options;
-  for(let i=0;i<count;i++) {
-    const angle = (i+random(-.28,.28))*TAU/count;
-    const length = distance*random(.52,1.12), radius = size*random(.58,1.3);
-    const dx = Math.cos(angle)*length, dy = Math.sin(angle)*length;
-    const el = piece(shape,x+Math.cos(angle)*start,y+Math.sin(angle)*start,radius*stretch,radius,color);
-    const rot = angle*180/Math.PI;
-    const pose = (tx,ty,s) => 'translate('+tx+'px,'+ty+'px) rotate('+rot+'deg) scale('+s+')';
-    animatePiece(el, [
-      {transform:pose(0,0,.45),opacity:0},
-      {transform:pose(dx*.34,dy*.34,1),opacity:1,offset:.12},
-      {transform:pose(dx*.86,dy*.86+gravity*.3,.85),opacity:1,offset:.55},
-      {transform:pose(dx,dy+gravity,.25),opacity:0}
-    ],life*random(.78,1.18),delay+random(0,22));
+function draw(now) {
+  frame = 0;
+  ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const dot = particles[i];
+    const age = (now - dot.start) / dot.life;
+    if (age >= 1) { particles.splice(i, 1); continue; }
+    if (age < 0) continue;
+    const t = reduce.matches ? .57 : age;
+    const [x, y] = dot.position(t);
+    const fade = Math.min(1, (1 - age) / .36);
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = dot.color;
+    ctx.beginPath();
+    ctx.arc(x, y, dot.radius * (.53 + .47 * fade), 0, tau);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  if (particles.length) frame = requestAnimationFrame(draw);
+}
+
+// Sample the actual outline and label, so the points occupy the lost button's silhouette.
+function dust(pos, n, now) {
+  const final = n === 3;
+  const mask = document.createElement('canvas');
+  mask.width = Math.max(1, Math.round(pos.width));
+  mask.height = Math.max(1, Math.round(pos.height));
+  const ink = mask.getContext('2d', {willReadFrequently:true});
+  const w = mask.width, h = mask.height;
+  ink.fillStyle = '#424242';
+  ink.strokeStyle = '#fff';
+  ink.beginPath();
+  ink.roundRect(1, 1, w-2, h-2, 7 * pos.scale);
+  ink.fill(); ink.stroke();
+  ink.fillStyle = '#fff';
+  ink.font = '500 ' + (14 * pos.scale) + 'px ' + getComputedStyle(face).fontFamily;
+  ink.textAlign = 'center'; ink.textBaseline = 'middle';
+  ink.fillText(face.textContent.trim(), w/2, h/2);
+  const pixels = ink.getImageData(0, 0, w, h).data;
+  const stride = final ? 2 : 3;
+  for (let y=1; y<h; y+=stride) {
+    for (let x=1; x<w; x+=stride) {
+      const offset=(y*w+x)*4;
+      if (pixels[offset+3]<45 || (!final && x < w*(n === 1 ? .77 : .62))) continue;
+      const bright = pixels[offset]>140;
+      if (!bright && Math.random() > .30) continue;
+      const x0=pos.x+x-w/2, y0=pos.y+y-h/2;
+      const dx=random(12,final?106:34);
+      const dy=(y/h-.5)*random(14,final?82:27)-random(7,final?50:16);
+      const curl=random(-13,13)*(final?1:.35);
+      const delay=(1-x/w)*(final?95:34);
+      addDot(now+delay,random(300,final?780:445),bright?random(.95,1.7):random(.75,1.35),
+        bright?pick(frost):(Math.random()<.2?'#f79568':'#b0aba6'), t=>{
+          const travel=1-Math.pow(1-t,2);
+          return [x0+dx*travel+curl*Math.sin(t*Math.PI),y0+dy*travel+14*t*t];
+        });
+    }
   }
 }
-function inkBurst() {
-  pulse('ink',0,0,74,52,orange,480,-14);
-  pulse('ink',-10,-3,34,19,amber,270,-18,18);
-  pulse('ring',0,0,108,70,cream,215,-16);
-  spray('drop',12,66,orange,{size:9,stretch:1.65,gravity:24,life:520});
-  spray('ink',15,91,amber,{size:4.5,gravity:29,life:640,delay:32});
-}
-function shatter() {
-  // Clip matching copies of the actual button so the outlines and letters break along with it.
-  const w = face.offsetWidth, h = face.offsetHeight, scale = .6, columns = 4;
-  const rows = [0,.52,1].map((row,r)=>Array.from({length:columns+1},(_,c)=>[
-    c===0||c===columns?c/columns:(c+random(-.2,.2))/columns,
-    r===1?row+random(-.15,.15):row
-  ]));
-  function triangle(points) {
-    const px=points.reduce((s,p)=>s+p[0],0)/3, py=points.reduce((s,p)=>s+p[1],0)/3;
-    const cx=(px-.5)*w, cy=(py-.5)*h, angle=Math.atan2(cy*2,cx)+random(-.43,.43);
-    const dx=Math.cos(angle)*random(32,78), dy=Math.sin(angle)*random(27,60)-15;
-    const spin=random(-130,130), el=document.createElement('span');
-    el.className='shard'; el.textContent=face.textContent;
-    Object.assign(el.style,{left:-w/2+'px',top:-h/2+'px',width:w+'px',height:h+'px',
-      transformOrigin:(px*100)+'% '+(py*100)+'%',clipPath:'polygon('+points.map(p=>p[0]*100+'% '+p[1]*100+'%').join(',')+')'});
-    const pose=(x,y,a,s)=>'translate('+((scale-1)*cx+x)+'px,'+((scale-1)*cy+y)+'px) rotate('+a+'deg) scale('+s+')';
-    animatePiece(el,[
-      {transform:pose(0,0,0,scale),opacity:1},
-      {transform:pose(dx*.8,dy*.85,spin*.45,scale),opacity:1,offset:.42},
-      {transform:pose(dx,dy+42,spin,.19),opacity:0}
-    ],random(410,620));
-  }
-  for(let r=0;r<2;r++)for(let c=0;c<columns;c++){
-    const a=rows[r][c],b=rows[r][c+1],d=rows[r+1][c],e=rows[r+1][c+1];
-    if((c+r)%2){triangle([a,b,d]);triangle([b,e,d]);}
-    else {triangle([a,b,e]);triangle([a,e,d]);}
-  }
-  pulse('ring',0,0,95,66,'#efefef',200,-9);
-  spray('streak',9,78,cream,{size:2.4,stretch:5,life:290});
-}
-function comicBurst() {
-  pulse('halftone',-6,3,129,91,orange,480,0,48);
-  pulse('flare',0,0,134,92,orange,350,-14);
-  pulse('flare',0,0,92,68,cream,220,8);
-  pulse('spark',-4,0,45,42,'#141414',165,-7);
-  spray('streak',17,104,cream,{size:3.5,stretch:7,start:22,life:320});
-  spray('spark',6,81,amber,{size:10,life:450,delay:55});
-}
-const bursts = {ink:inkBurst,shards:shatter,comic:comicBurst};
-function hitAccent(x,y,n) {
-  if(mode==='ink') {
-    pulse('ink',x,y,20+n*6,9+n*3,amber,185,-18);
-    spray('drop',3+n,16+7*n,orange,{x,y,size:3,stretch:1.5,gravity:8,life:230});
-  } else if(mode==='shards') {
-    pulse('crack',x,y,24+n*5,20+n*3,cream,225,-12);
-    spray('streak',3+n,18+6*n,cream,{x,y,size:1.7,stretch:4,life:180});
-  } else {
-    pulse('spark',x,y,24+n*7,20+n*4,cream,145,-10);
-    spray('streak',4+n,23+7*n,orange,{x,y,size:2,stretch:4.5,life:190});
+function orbit(pos, n, now) {
+  const final = n===3, count = final?104:12+n*4;
+  const hold = final ? .31 : .38;
+  for (let i=0;i<count;i++) {
+    const angle=(i+Math.random())*tau/count;
+    const from=random(final?23:11,final?56:24);
+    const distance=random(final?38:12,final?107:29);
+    const spin=random(.55,1.2);
+    const radius=random(.9,final?2.55:1.8);
+    addDot(now+random(0,18),random(final?600:255,final?760:350),radius,pick(heat),t=>{
+      let r, a;
+      if(t<hold) {
+        const u=t/hold;
+        r=2+(from-2)*(1-u*u); a=angle+spin*u;
+      } else {
+        const u=(t-hold)/(1-hold);
+        r=2+distance*(1-Math.pow(1-u,2.5)); a=angle+spin+.18*u;
+      }
+      return [pos.x+Math.cos(a)*r,pos.y+Math.sin(a)*r*.81];
+    });
   }
 }
-const transform = (sx,sy,x=0,y=0,deg=0) =>
-  'translate('+x+'px,'+y+'px) rotate('+deg+'deg) scale('+sx+','+sy+')';
+function chain(pos,n,now) {
+  const final=n===3, seeds=final?6:(n===1?1:2);
+  for(let i=0;i<seeds;i++) {
+    const angle=-Math.PI*.7 + (i+random(-.2,.2))*tau/seeds;
+    const distance=final?random(35,68):random(11,21);
+    const dx=Math.cos(angle)*distance, dy=Math.sin(angle)*distance*.76-5;
+    const flight=random(95,final?220:140), launch=now+i*(final?13:8);
+    const endX=pos.x+dx, endY=pos.y+dy;
+    addDot(launch,flight,final?2.7:1.7,'#fff9e7',t=>
+      [pos.x+dx*t,pos.y+dy*t-Math.sin(t*Math.PI)*7]);
+    const count=final?18:7;
+    for(let j=0;j<count;j++) {
+      const dir=(j+Math.random())*tau/count, speed=random(final?12:5,final?39:13);
+      const fall=random(12,final?35:18);
+      addDot(launch+flight,random(310,final?610:400),random(.85,final?2.2:1.6),pick(heat),t=>{
+        const r=speed*(1-Math.pow(1-t,2.2));
+        return [endX+Math.cos(dir)*r,endY+Math.sin(dir)*r+fall*t*t];
+      });
+    }
+  }
+}
+const emit = {dust, orbit, chain};
 function reset() {
-  run++;
-  recoil?.cancel(); recoil=null;
-  origin.replaceChildren();
-  hits=0;refuse.disabled=false;face.style.transform='none';face.style.opacity='1';
-  notice.hidden=false;reopen.hidden=true;status.textContent='点三下「不行！」试试';
+  generation++; recoil?.cancel(); clearParticles();
+  hits=0;refusal.disabled=false;face.style.transform='none';face.style.opacity='1';
+  notice.hidden=false;reopen.hidden=true;statusLine.textContent='点三下「不行！」试试';
 }
-async function hit(event) {
-  if(hits>=3 || notice.hidden) return;
-  const n=++hits, final=n===3, token=run, target=1-.2*n;
-  const box=refuse.getBoundingClientRect();
-  const x=event.detail?Math.max(-box.width*.28,Math.min(box.width*.28,event.clientX-box.left-box.width/2)):0;
-  const y=event.detail?Math.max(-8,Math.min(8,event.clientY-box.top-box.height/2)):0;
-  const dir=x<0?1:-1;
+async function hit() {
+  if (hits>=3 || notice.hidden) return;
+  const n=++hits, final=n===3, token=generation;
+  const buttonBox=refusal.getBoundingClientRect(), stageBox=stage.getBoundingClientRect();
+  const base=1-.2*(n-1);
+  const pos={x:buttonBox.left+buttonBox.width/2-stageBox.left,y:buttonBox.top+buttonBox.height/2-stageBox.top,
+    width:buttonBox.width*base,height:buttonBox.height*base,scale:base};
   const current=getComputedStyle(face).transform;
   recoil?.cancel();
   if(final) {
-    if(document.activeElement===refuse) accept.focus({preventScroll:true});
-    refuse.disabled=true;
+    if(document.activeElement===refusal) accept.focus({preventScroll:true});
+    refusal.disabled=true;
   }
-  status.textContent=n+' / 3'+(final?' · 可点「重玩」':'');
-  const resting=final?'scale(0)':'scale('+target+')';
+  statusLine.textContent=n+' / 3'+(final?' · 可点「重玩」':'');
+  const target=final?0:base-.2;
+  const resting='scale('+target+')';
   face.style.transform=resting;
-  if(reducedMotion.matches) {
-    if(final) face.style.opacity='0';
-    return;
+  if(!reduce.matches && !final) emit[mode](pos,n,performance.now());
+  if(!reduce.matches) {
+    const impact='scale('+base*.94+','+base*.78+')';
+    const rebound='scale('+target*1.04+','+target*1.07+')';
+    const frames=[{transform:current},{transform:impact,offset:.16},{transform:impact,offset:.37},
+      {transform:final?'scale('+base+')':rebound,offset:.78},{transform:final?'scale('+base+')':resting}];
+    recoil=face.animate(frames,{duration:final?96:185});
+    try {await recoil.finished;} catch {return;}
   }
-  if(!final) hitAccent(x,y,n);
-  const prev=1-.2*(n-1);
-  let contact, overshoot;
-  if(mode==='ink'){
-    contact=transform(prev*1.14,prev*.58,0,3);
-    overshoot=transform(target*.88,target*1.16,0,-2);
-  }else if(mode==='shards'){
-    contact=transform(prev*.94,prev*.91,dir*(4+n),1,dir*2);
-    overshoot=transform(target,target,-dir*2,0,-dir*1.5);
-  }else{
-    contact=transform(prev*1.05,prev*.77,dir*5,2,dir*(3+n));
-    overshoot=transform(target*.98,target*1.09,-dir*2,-2,-dir*2);
-  }
-  const frames=final?[
-    {transform:current},{transform:contact,offset:.27},{transform:contact,offset:.82},
-    {transform:mode==='shards'?'scale(.6)':'scale(.13)'}
-  ]:[
-    {transform:current},{transform:contact,offset:.15},{transform:contact,offset:.31},
-    {transform:overshoot,offset:.59,easing:'ease-out'},{transform:resting}
-  ];
-  recoil=face.animate(frames,{duration:final?115:(mode==='shards'?185:245),fill:'none'});
-  try {await recoil.finished;} catch {return;}
-  if(final && token===run && !notice.hidden){
+  if(final && token===generation && !notice.hidden) {
     face.style.opacity='0';
-    bursts[mode]();
+    emit[mode](pos,n,performance.now());
   }
 }
-refuse.addEventListener('click',hit);
+refusal.addEventListener('click',hit);
 accept.addEventListener('click',()=>{
-  reset(); notice.hidden=true; reopen.hidden=false; status.textContent='弹窗已关闭';reopen.focus({preventScroll:true});
+  reset();notice.hidden=true;reopen.hidden=false;statusLine.textContent='弹窗已关闭';reopen.focus({preventScroll:true});
 });
-reopen.addEventListener('click',()=>{reset();refuse.focus({preventScroll:true});});
-q('.replay').addEventListener('click',reset);
+reopen.addEventListener('click',()=>{reset();refusal.focus({preventScroll:true});});
+el('.replay').addEventListener('click',reset);
 function choose(value) {
   const radio=radios.find(input=>input.value===value)||radios[0];
   radio.checked=true;mode=radio.value;reset();
