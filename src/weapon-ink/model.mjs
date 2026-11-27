@@ -135,17 +135,9 @@ export async function prepareInk(glb,raw,profile) {
   }
   return {doc,bin,recipes,targets,paint};
 }
-export async function colorGlb(prepared,hex) {
-  const {bin,recipes,targets}=prepared, doc=structuredClone(prepared.doc);
-  const tint=colorChannels(hex), parts=[bin], generated=new Map();
-  let size=bin.length;
-  async function appendImage(width,height,rgba) {
-    const png=await writePng({width,height,rgba}), pad=padding(size);
-    parts.push(new Uint8Array(pad),png);size+=pad;
-    const bufferView=doc.bufferViews.push({buffer:0,byteOffset:size,byteLength:png.size})-1;
-    size+=png.size;return doc.images.push({bufferView,mimeType:'image/png'})-1;
-  }
-  for(const [key,{original,w,h,base,mask,ao}] of recipes) {
+export function* inkSurfaces(prepared,hex) {
+  const tint=colorChannels(hex);
+  for(const [key,{original,w,h,base,mask,ao}] of prepared.recipes) {
     const {width,height}=original, rgba=original.rgba.slice();
     const resized=w!==width || h!==height;
     const baked=resized?new Uint8Array(w*h*4):rgba;
@@ -163,28 +155,42 @@ export async function colorGlb(prepared,hex) {
         for(let c=0;c<3;c++)rgba[p+c]=Math.round(255*sample(x,y,c));
       }
     }
-    generated.set(key,await appendImage(width,height,rgba));
-  }
-  for(const {material,key} of targets) {
-    const slot=doc.materials[material].pbrMetallicRoughness.baseColorTexture;
-    const texture={...doc.textures[slot.index],source:generated.get(key)};
-    slot.index=doc.textures.push(texture)-1;
+    const materials=prepared.targets.filter(target=>target.key===key).map(target=>target.material);
+    yield {materials,width,height,rgba,paint:false};
   }
   for(const {material,width,height,mask,base,alpha} of prepared.paint) {
-    const pbr=doc.materials[material].pbrMetallicRoughness;
-    const factor=pbr.baseColorFactor||[1,1,1,1], slot=pbr.baseColorTexture;
+    const pbr=prepared.doc.materials[material].pbrMetallicRoughness;
+    const factor=pbr.baseColorFactor||[1,1,1,1];
     const rgba=new Uint8Array(width*height*4);
     for(let y=0,p=0;y<height;y++)for(let x=0;x<width;x++,p+=4) {
       const coverage=mask(x,y,0);
       for(let c=0;c<3;c++)rgba[p+c]=toByte((1-coverage)*base(x,y,c)*factor[c]+coverage*tint[c]);
       rgba[p+3]=Math.round(255*alpha(x,y,3));
     }
+    yield {materials:[material],width,height,rgba,paint:true};
+  }
+}
+export async function colorGlb(prepared,hex) {
+  const {bin}=prepared, doc=structuredClone(prepared.doc);
+  const parts=[bin];
+  let size=bin.length;
+  async function appendImage(width,height,rgba) {
+    const png=await writePng({width,height,rgba}), pad=padding(size);
+    parts.push(new Uint8Array(pad),png);size+=pad;
+    const bufferView=doc.bufferViews.push({buffer:0,byteOffset:size,byteLength:png.size})-1;
+    size+=png.size;return doc.images.push({bufferView,mimeType:'image/png'})-1;
+  }
+  for(const {materials,width,height,rgba,paint} of inkSurfaces(prepared,hex)) {
     const image=await appendImage(width,height,rgba);
-    const texture=slot?{...doc.textures[slot.index]}:{};
-    texture.source=image;
-    // The source UV transform was baked into the base layer. The paint mask uses UV0.
-    pbr.baseColorTexture={index:doc.textures.push(texture)-1};
-    pbr.baseColorFactor=[1,1,1,factor[3]];
+    for(const index of materials) {
+      const pbr=doc.materials[index].pbrMetallicRoughness, slot=pbr.baseColorTexture;
+      const texture={...doc.textures[slot?.index],source:image};
+      const target=doc.textures.push(texture)-1;
+      if(paint) {
+        pbr.baseColorTexture={index:target};
+        pbr.baseColorFactor=[1,1,1,pbr.baseColorFactor?.[3]??1];
+      } else slot.index=target;
+    }
   }
   return packGlb(doc,parts,size);
 }
