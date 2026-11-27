@@ -95,6 +95,7 @@ export async function enableInk({item,signal,original,links,loadBlend,viewer,siz
   const defaults=Object.fromEntries(Object.entries(links).map(([format,link])=>[format,link.href]));
   const preview=liveMaterials(viewer);
   let requested='',applied='',active=false,revision=0,worker,initialized,statusTimer;
+  let scrubbing=false,resetCount=0;
   const outputs=new Map();
   function invalidateDownloads() {
     for(const job of outputs.values())if(job.url)URL.revokeObjectURL(job.url);
@@ -126,14 +127,16 @@ export async function enableInk({item,signal,original,links,loadBlend,viewer,siz
     active=true;
     try {
       while(!signal.aborted && requested!==applied) {
-        const color=requested,turn=revision;
+        const color=requested,turn=revision,resetAtStart=resetCount;
         try {
           await initialize();
           if(signal.aborted || revision!==turn)continue;
           const surfaces=await worker.request('preview',{hex:color});
-          if(signal.aborted || revision!==turn)continue;
+          if(signal.aborted || resetCount!==resetAtStart)continue;
+          // Keep native colour drags moving, but never flash an obsolete preset or undo a reset.
+          if(revision!==turn && (!scrubbing || requested===applied))continue;
           preview.show(surfaces);applied=color;
-          clearTimeout(statusTimer);status.textContent='';
+          if(requested===applied){clearTimeout(statusTimer);status.textContent='';}
         } catch(error) {
           if(signal.aborted || revision!==turn)continue;
           clearTimeout(statusTimer);status.textContent='换色失败，请重新选色';return;
@@ -141,7 +144,8 @@ export async function enableInk({item,signal,original,links,loadBlend,viewer,siz
       }
     } finally {active=false;}
   }
-  function choose(hex) {
+  function choose(hex,dragging=false) {
+    scrubbing=dragging;
     if(hex===requested && (active || hex===applied))return;
     requested=hex;revision++;
     clearTimeout(statusTimer);status.textContent='';invalidateDownloads();
@@ -152,7 +156,7 @@ export async function enableInk({item,signal,original,links,loadBlend,viewer,siz
     custom.value=hex||originalChip;field.value=hex.toUpperCase();reset.disabled=!hex;
     field.setCustomValidity('');
     for(const format of Object.keys(links))refreshLink(format);
-    if(!hex){preview.restore();applied='';return;}
+    if(!hex){resetCount++;preview.restore();applied='';return;}
     if(applied!==hex) {
       statusTimer=setTimeout(()=>{status.textContent='正在换色…';},220);
       void render();
@@ -168,7 +172,7 @@ export async function enableInk({item,signal,original,links,loadBlend,viewer,siz
     const button=event.target.closest('button');if(button)choose(button.value);
   },{signal});
   reset.addEventListener('click',()=>choose(''),{signal});
-  for(const event of ['input','change'])custom.addEventListener(event,()=>choose(custom.value.toLowerCase()),{signal});
+  for(const event of ['input','change'])custom.addEventListener(event,()=>choose(custom.value.toLowerCase(),event==='input'),{signal});
   function typedColor() {
     const value=field.value.trim();
     return /^#?[0-9a-f]{6}$/i.test(value)?'#'+value.replace('#','').toLowerCase():'';

@@ -7,7 +7,7 @@ permissions:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 14
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,4 +17,7 @@ jobs:
           node-version: '22'
       - run: npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.56.1 pngjs@7.0.0
       - run: node scripts/build.mjs
-      - run: node ink-ui-smoke.mjs
+      - name: Test candidate UI
+        run: node ink-ui-smoke.mjs
+      - name: Verify published UI
+        run: node ink-ui-smoke.mjs --live
