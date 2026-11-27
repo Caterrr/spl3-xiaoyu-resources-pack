@@ -4,6 +4,10 @@
   const fallback = dialog.querySelector('#credit-fallback');
   const url = dialog.querySelector('#credit-url');
 
+  dialog.addEventListener('keydown', event => {
+    if (event.key === 'Tab') dialog.setAttribute('data-keyboard-nav', '');
+  });
+
   async function dismiss() {
     if (dialog.hasAttribute('data-closing')) return;
     dialog.setAttribute('data-closing', '');
