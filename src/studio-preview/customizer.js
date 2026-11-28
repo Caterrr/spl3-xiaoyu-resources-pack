@@ -4,7 +4,7 @@ import {OrbitControls} from '../vendor/three/examples/jsm/controls/OrbitControls
 import {setupPosePanel} from '../customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-import {profiles} from './customizer-profiles.js?v=f44ce66449b9';
+import {profiles} from './customizer-profiles.js?v=1c057120481d';
 import {handoff,handoffURL} from './studio-store.js';
 const transfer=handoff();
 const studioEdit=typeof transfer?.edit==='string' && typeof transfer.project==='string' ? transfer : null;

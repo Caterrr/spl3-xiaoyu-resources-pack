@@ -5,7 +5,7 @@ import {loadAsset,joinAsset,prepareTints,dispose,tint,setEye,SKIN_PRESETS,BASE_S
 import {loadHeadgearFit,applyHeadgearFit,mountLibraryHeadgear} from './customizer-spl3-headgear.js?v=d34086902aff';
 import {restoreExportPose} from './customizer-spl3-poses.js?v=7800c405309e';
 export {previewPoses,loadPreviewPose,setPreviewPose} from './customizer-spl3-poses.js?v=7800c405309e';
-import libraryHeadgear from './customizer-spl3-extra-headgear.js?v=a9d96ac0ecfe';
+import libraryHeadgear from './customizer-spl3-extra-headgear.js?v=04da74394c19';
 export {dispose,tint,setEye,SKIN_PRESETS,setSkinColor,restoreSkinSave};
 
 export const DEFAULTS=Object.freeze({species:'squid',gender:'female',hair:'spl3:Har_SQD001',brow:1,outfit:'spl3:Clt_TES000',bottom:'spl3:Btm_000',headgear:'spl3:none:headgear',shoes:'spl3:Shs_SDL000',eye:0,color:'#ff5d1c',skinColor:BASE_SKIN,skinPreset:null});
@@ -35,13 +35,8 @@ export function expandCatalog(catalog) {
   const headgear=[], outfitHeadgear=new Map();
   for (const item of [...catalog.headgear, freshFishHeadgear, ...libraryHeadgear]) {
     const outfitId=salmonRunWorkwear.get(item.id);
-    if (!outfitId) {
-      headgear.push(item);
-      continue;
-    }
-    const variants=Object.fromEntries(Object.entries(item.variants).map(([gender, model]) =>
-      [gender, {...model, headMount:uprightHeadMount}]));
-    outfitHeadgear.set(outfitId, {...item, variants});
+    if (outfitId) outfitHeadgear.set(outfitId,item);
+    else headgear.push(item);
   }
   return {...catalog, headgear, outfitHeadgear};
 }

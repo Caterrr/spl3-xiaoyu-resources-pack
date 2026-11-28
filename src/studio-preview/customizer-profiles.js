@@ -1,1 +1,1 @@
-export const profiles={raiders:{catalog:'../catalog/raiders/customizer.json?v=afa33936a92f',core:'../customizer-core.js?v=29bd5c9b69f2'},spl3:{catalog:'../catalog/spl3/customizer.json?v=c662621acc70',core:'../customizer-spl3-core.js?v=c710e16a7d8b'}};
+export const profiles={raiders:{catalog:'../catalog/raiders/customizer.json?v=afa33936a92f',core:'../customizer-core.js?v=29bd5c9b69f2'},spl3:{catalog:'../catalog/spl3/customizer.json?v=c662621acc70',core:'../customizer-spl3-core.js?v=66f4c97fa0d9'}};
