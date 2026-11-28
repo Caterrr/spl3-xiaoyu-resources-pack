@@ -3,7 +3,7 @@ import {facialControls, portraitCameras, actionCamera, squarePng} from './custom
 
 const $ = id => document.getElementById(id);
 const profiles = {
-  spl3:{core:'./customizer-spl3-core.js?v=f277bc9c0a60',catalog:'./catalog/spl3/customizer.json?v=c662621acc70'},
+  spl3:{core:'./customizer-spl3-core.js?v=c710e16a7d8b',catalog:'./catalog/spl3/customizer.json?v=c662621acc70'},
   raiders:{core:'./customizer-core.js?v=29bd5c9b69f2',catalog:'./catalog/raiders/customizer.json?v=afa33936a92f'}
 };
 const modeNames={head:'正脸',bust:'半身',free:'自由'};

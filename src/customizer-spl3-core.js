@@ -17,19 +17,30 @@ export function headgearAvailable(entry,state){return supports(entry,state.gende
 // Splatoon 3 CoopSkinInfo pairs each work uniform with its original hat.
 const salmonRunWorkwear = new Map(['COP001','COP002','COP003','COP004','COP005','COP006','COP007','COP008','COP009','COP010','COP011','COP012','COP013','COP014','COP015','COP016','COP017','COP018','COP019','COP020','COP021']
   .map(code => ['spl3:Hed_'+code, 'spl3:Clt_'+code]));
-// The uniform hats are already Y-up and forward-facing in the library files.
-const workwearHeadMount = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2523,0,1];
+// These library meshes already face forward in Y-up space and share a head-local origin.
+const uprightHeadMount = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2523,0,1];
+const freshFishPoster = new URL('./assets/headgear/fresh-fish-head.webp', import.meta.url).href;
+const freshFishModel = {
+  id:'spl3:Hed_AMB010', source:'Hed_AMB010', game:'spl3',
+  url:new URL('./assets/headgear/fresh-fish-head.glb.gz', import.meta.url).href,
+  bytes:779008, sha256:'a6c97881c4af34efe2149c7e3de115593570b655da5a3679b16dae4752ada535',
+  headMount:uprightHeadMount
+};
+const freshFishHeadgear = {
+  id:freshFishModel.id, name:'鱼奇奇头套', poster:freshFishPoster,
+  variants:{female:freshFishModel, male:freshFishModel}
+};
 
 export function expandCatalog(catalog) {
   const headgear=[], outfitHeadgear=new Map();
-  for (const item of [...catalog.headgear, ...libraryHeadgear]) {
+  for (const item of [...catalog.headgear, freshFishHeadgear, ...libraryHeadgear]) {
     const outfitId=salmonRunWorkwear.get(item.id);
     if (!outfitId) {
       headgear.push(item);
       continue;
     }
     const variants=Object.fromEntries(Object.entries(item.variants).map(([gender, model]) =>
-      [gender, {...model, headMount:workwearHeadMount}]));
+      [gender, {...model, headMount:uprightHeadMount}]));
     outfitHeadgear.set(outfitId, {...item, variants});
   }
   return {...catalog, headgear, outfitHeadgear};
