@@ -4,7 +4,7 @@ import {OrbitControls} from '../vendor/three/examples/jsm/controls/OrbitControls
 import {setupPosePanel} from '../customizer-pose-menu.js?v=a9f289512a99';
 const gameKey=new URLSearchParams(location.search).get('game')==='spl3'?'spl3':'raiders';
 const gameName=gameKey==='spl3'?'喷3':'涂击队';
-import {profiles} from './customizer-profiles.js?v=1b6443d0af4d';
+import {profiles} from './customizer-profiles.js?v=1d8ef275220e';
 import {handoff,handoffURL} from './studio-store.js';
 const transfer=handoff();
 const studioEdit=typeof transfer?.edit==='string' && typeof transfer.project==='string' ? transfer : null;
@@ -134,7 +134,8 @@ function sync(){
   if(gameKey==='spl3'){
     const flags=wearFlags(catalog,state);
     const blocked=wearKind==='shoes'&&flags.integratedShoes?'这套衣服自带鞋子，换下后恢复所选鞋子。'
-      :wearKind==='bottoms'&&flags.hidePants?'这套衣服自带下装，换下后恢复所选裤子。':'';
+      :wearKind==='bottoms'&&flags.hidePants?'这套衣服自带下装，换下后恢复所选裤子。'
+      :wearKind==='headgear'&&flags.integratedHeadgear?'这套衣服自带帽子，换下后恢复所选发饰。':'';
     $('#wear-notice').textContent=blocked;
     $('#wear-notice').hidden=!blocked;
     for(const button of $('#outfit-choices').querySelectorAll('button'))button.disabled=!!blocked;

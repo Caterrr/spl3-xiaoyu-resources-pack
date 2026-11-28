@@ -3,7 +3,7 @@ import {facialControls, portraitCameras, actionCamera, squarePng} from './custom
 
 const $ = id => document.getElementById(id);
 const profiles = {
-  spl3:{core:'./customizer-spl3-core.js?v=ce6141d0a461',catalog:'./catalog/spl3/customizer.json?v=c662621acc70'},
+  spl3:{core:'./customizer-spl3-core.js?v=f277bc9c0a60',catalog:'./catalog/spl3/customizer.json?v=c662621acc70'},
   raiders:{core:'./customizer-core.js?v=29bd5c9b69f2',catalog:'./catalog/raiders/customizer.json?v=afa33936a92f'}
 };
 const modeNames={head:'正脸',bust:'半身',free:'自由'};
@@ -184,7 +184,8 @@ function showGallery(){
   }else if(activePanel==='wear'){
     const items=game==='raiders'?catalog.outfits:catalog[gear].filter(x=>gear==='headgear'?core.headgearAvailable(x,state):core.supports(x,state.gender));
     const flags=game==='spl3'?core.wearFlags(catalog,state):{};
-    const note=gear==='shoes'&&flags.integratedShoes?'这套衣服自带鞋子。':gear==='bottoms'&&flags.hidePants?'这套衣服自带下装。':'';
+    const note=gear==='shoes'&&flags.integratedShoes?'这套衣服自带鞋子。':gear==='bottoms'&&flags.hidePants?'这套衣服自带下装。'
+      :gear==='headgear'&&flags.integratedHeadgear?'这套衣服自带帽子。':'';
     $('wear-note').textContent=note;$('wear-note').hidden=!note;
     const key=gearKeys[gear];
     gallery($('outfits'),items.map(x=>({...x,value:x.id})),state[key],value=>change({[key]:value}),!!note);

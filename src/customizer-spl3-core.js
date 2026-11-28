@@ -14,8 +14,25 @@ export function browId(s){return `spl3:Eyb_${s.species==='octopus'?'OCT':'SQD'}0
 export function supports(entry,gender){return !!entry&&(entry.empty||!!entry.variants?.[gender]);}
 export function headgearRule(entry,s){return entry?.fitByAvatar?.[avatarId(s)]||{};}
 export function headgearAvailable(entry,state){return supports(entry,state.gender);}
+// Splatoon 3 CoopSkinInfo pairs each work uniform with its original hat.
+const salmonRunWorkwear = new Map(['COP001','COP002','COP003','COP004','COP005','COP006','COP007','COP008','COP009','COP010','COP011','COP012','COP013','COP014','COP015','COP016','COP017','COP018','COP019','COP020','COP021']
+  .map(code => ['spl3:Hed_'+code, 'spl3:Clt_'+code]));
+// The uniform hats are already Y-up and forward-facing in the library files.
+const workwearHeadMount = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,1.2523,0,1];
+
 export function expandCatalog(catalog) {
-  return {...catalog, headgear:[...catalog.headgear, ...libraryHeadgear]};
+  const headgear=[], outfitHeadgear=new Map();
+  for (const item of [...catalog.headgear, ...libraryHeadgear]) {
+    const outfitId=salmonRunWorkwear.get(item.id);
+    if (!outfitId) {
+      headgear.push(item);
+      continue;
+    }
+    const variants=Object.fromEntries(Object.entries(item.variants).map(([gender, model]) =>
+      [gender, {...model, headMount:workwearHeadMount}]));
+    outfitHeadgear.set(outfitId, {...item, variants});
+  }
+  return {...catalog, headgear, outfitHeadgear};
 }
 export function normalize(input,catalog){
   if(catalog.game!=='spl3')throw Error('喷3搭配目录不匹配');
@@ -35,7 +52,14 @@ export function normalize(input,catalog){
   if(!/^#[\da-f]{6}$/i.test(s.color))s.color=DEFAULTS.color;
   return {species:s.species,gender:s.gender,hair:s.hair,brow:s.brow,outfit:s.outfit,bottom:s.bottom,headgear:s.headgear,shoes:s.shoes,eye:s.eye,color:s.color.toLowerCase(),...normalizeSkinSelection(input)};
 }
-export function wearFlags(catalog,s){return catalog.clothes.find(e=>e.id===s.outfit)?.variants?.[s.gender]?.flags||{};}
+function outfitHeadgear(catalog,state) {
+  const headgear=catalog.outfitHeadgear?.get(state.outfit);
+  return supports(headgear,state.gender) ? headgear : undefined;
+}
+export function wearFlags(catalog,state) {
+  const flags=catalog.clothes.find(e=>e.id===state.outfit)?.variants?.[state.gender]?.flags;
+  return {...flags, integratedHeadgear:!!outfitHeadgear(catalog,state)};
+}
 function rigOf(scene){let found;scene.traverse(o=>{if(o.userData.canonicalRig)found=o;});if(!found)throw Error('角色骨骼缺失');return found;}
 async function load(entry){
   if(!entry||entry.game!=='spl3'||!entry.id.startsWith('spl3:'))throw Error('服装与角色必须来自喷3');
@@ -55,7 +79,8 @@ async function maskBody(mesh,urls){
 }
 export async function assemble(catalog,input){
   const state=normalize(input,catalog),flags=wearFlags(catalog,state);
-  const outfit=catalog.clothes.find(e=>e.id===state.outfit),headgear=catalog.headgear.find(e=>e.id===state.headgear),shoe=catalog.shoes.find(e=>e.id===state.shoes);
+  const outfit=catalog.clothes.find(e=>e.id===state.outfit),shoe=catalog.shoes.find(e=>e.id===state.shoes);
+  const headgear=outfitHeadgear(catalog,state) ?? catalog.headgear.find(e=>e.id===state.headgear);
   const headRule=headgearRule(headgear,state);
   const bottom=catalog.bottoms.find(e=>e.id===state.bottom);
   const entries={body:catalog.avatars.find(e=>e.id===avatarId(state)),wear:variant(outfit,state),brow:catalog.brows.find(e=>e.id===browId(state))};
