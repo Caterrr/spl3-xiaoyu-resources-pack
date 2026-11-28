@@ -7,7 +7,7 @@
 <title>捏头像 · 奇迹鱿鱿</title>
 <link rel="icon" href="./assets/site-icon.ico">
 <link rel="stylesheet" href="./typography.css?v=a554d1e98007">
-<link rel="stylesheet" href="./avatar-studio.css?v=04c6ce4d7e6d">
+<link rel="stylesheet" href="./avatar-studio.css?v=9653c1454743">
 <link rel="stylesheet" href="./customizer-credit.css?v=3aa8bdca283d">
 <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.min.js"}}</script>
 </head>
@@ -16,7 +16,6 @@
   <header class="studio-bar">
     <a id="back" href="./guestbook.html?compose=1"><span aria-hidden="true">←</span> 返回留言板</a>
     <h1>捏头像<span> / 奇迹鱿鱿</span></h1>
-    <button id="use" class="primary" type="button" disabled>使用头像</button>
   </header>
   <div class="workspace">
     <div class="view-column">
@@ -24,7 +23,13 @@
         <div class="crop" aria-hidden="true"></div>
         <div id="loading"><span id="load-text" role="status">正在加载角色…</span><button id="retry" type="button" hidden>重试</button></div>
       </div>
-      <div class="view-foot"><span id="shot-label">正脸 · 1:1</span><button id="save" type="button" disabled>保存 PNG <span aria-hidden="true">↓</span></button></div>
+      <div class="view-foot">
+        <span id="shot-label">正脸 · 1:1</span>
+        <div class="view-actions">
+          <button id="save" type="button" disabled>保存 PNG</button>
+          <button id="use" class="primary" type="button" disabled>使用头像</button>
+        </div>
+      </div>
     </div>
     <section class="tools" aria-label="头像设置">
       <nav class="sections" aria-label="设置分类">
